@@ -1,0 +1,17 @@
+# League settings. Update at the start of each season.
+
+season = 2026                 # season start year: 2026 = 2026–27
+last_season = 2025
+week1_monday = 2026-10-19     # Monday of the week containing opening night
+use_last_season_through_week = 3   # weeks 1–3 rank teams by last season's records
+
+site_url = "https://danigle.github.io/nba-pickem/"
+
+# balldontlie game ids for NBA Cup Finals (don't count toward standings).
+# Fill in once the matchup is set in December.
+cup_final_game_ids = []
+
+# First regular-season game date per season. Anything earlier is preseason.
+[openers]
+2025 = 2025-10-21
+2026 = 2026-10-20

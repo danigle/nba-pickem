@@ -1,0 +1,23 @@
+# Commissioner's thumb on the scale. Teams are balldontlie abbreviations.
+# Any change here applies to the NEXT slate generated; past slates keep a
+# snapshot of the prefs they used (weeks.slate_inputs).
+
+# Rule 2: how many teams count as "top teams" (by win %).
+top_teams = 6
+
+# Rule 7: when the no-repeat rule has to be relaxed, games with these teams
+# are added first, in this order.
+repeat_priority = ["SAC"]
+
+# These teams never appear twice in one week, even when rules are relaxed.
+never_repeat = ["LAL"]
+
+# Rule 4: random-fill weights. 1.0 = neutral, 2.0 = twice as likely, 0 = never.
+# A game's weight = home weight × away weight, so a 0 team excludes the game.
+[weights]
+SAC = 2.0
+LAL = 0.0
+
+# Rule 3: a team only counts as a top team if ranked this high or better.
+[top_team_max_rank]
+LAL = 3

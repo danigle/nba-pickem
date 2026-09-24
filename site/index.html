@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>My Picks · NBA Pick'em</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🏀 NBA Pick'em</h1>
+    <nav>
+      <a href="index.html" class="active">My Picks</a>
+      <a href="picks.html">Weekly Picks</a>
+      <a href="standings.html">Standings</a>
+    </nav>
+  </header>
+  <main>
+    <p class="subhead" id="subhead"></p>
+    <div id="message"></div>
+    <div id="games"></div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const token = getToken();
+    const msg = document.getElementById("message");
+    const list = document.getElementById("games");
+    const subhead = document.getElementById("subhead");
+    let teams = {}, games = [], myPicks = {}, week = null;
+
+    async function init() {
+      if (!requireConfig(msg)) return;
+      if (!token) {
+        showNotice(msg, "Open the private link you were sent to make picks. You can still see <a href='picks.html'>Weekly Picks</a> and <a href='standings.html'>Standings</a>.");
+        return;
+      }
+      try {
+        const [me] = await rpc("get_me", { p_token: token });
+        if (!me) {
+          showNotice(msg, "That link isn't valid. Ask the commissioner for yours.", true);
+          return;
+        }
+        [teams, week] = await Promise.all([loadTeams(), loadWeeks().then(currentWeek)]);
+        if (!week) {
+          subhead.textContent = `Hi, ${me.display_name}.`;
+          showNotice(msg, "No slate yet. The first one posts the Monday before opening night.");
+          return;
+        }
+        subhead.textContent = `Hi, ${me.display_name} · ${weekLabel(week)}`;
+        games = await loadSlateGames(week.id);
+        await refreshPicks();
+        render();
+        setInterval(render, 30000); // flip games to locked as tip-offs pass
+      } catch (e) {
+        showNotice(msg, `Couldn't load picks: ${esc(e.message)}`, true);
+      }
+    }
+
+    async function refreshPicks() {
+      const rows = await rpc("get_my_picks", { p_token: token, p_week_id: week.id });
+      myPicks = Object.fromEntries(rows.map((r) => [r.game_id, r.picked_team_id]));
+    }
+
+    function teamButton(game, teamId, score) {
+      const t = teams[teamId] || { abbreviation: "?", name: "" };
+      const picked = myPicks[game.id] === teamId;
+      const winner = winnerId(game);
+      const classes = ["team-btn"];
+      if (picked) classes.push("picked");
+      if (picked && winner) classes.push(winner === teamId ? "correct" : "wrong");
+      return `<button class="${classes.join(" ")}" data-game="${game.id}" data-team="${teamId}"
+                ${isLocked(game) ? "disabled" : ""} aria-pressed="${picked}">
+                <span class="abbr">${esc(t.abbreviation)}</span>
+                <span class="name">${esc(t.name)}</span>
+                ${game.status === "final" || game.status === "in_progress" ? `<span class="score">${score ?? ""}</span>` : ""}
+              </button>`;
+    }
+
+    function render() {
+      if (!games.length) {
+        showNotice(msg, "No games this week (e.g., All-Star break). Enjoy the week off.");
+        list.innerHTML = "";
+        return;
+      }
+      const picked = games.filter((g) => myPicks[g.id]).length;
+      const open = games.filter((g) => !isLocked(g) && !myPicks[g.id]).length;
+      showNotice(msg, `<strong>${picked} of ${games.length} picked.</strong> ` +
+        (open ? `${open} open game${open > 1 ? "s still need" : " still needs"} a pick. Picks lock at tip-off.` : "You're all set."));
+
+      list.innerHTML = games.map((g) => `
+        <div class="game">
+          <div class="game-meta"><span>${tipoffLabel(g)}</span><span>${statusLabel(g)}</span></div>
+          <div class="teams">
+            ${teamButton(g, g.away_team_id, g.away_score)}
+            <span class="at">@</span>
+            ${teamButton(g, g.home_team_id, g.home_score)}
+          </div>
+        </div>`).join("");
+    }
+
+    list.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".team-btn");
+      if (!btn || btn.disabled) return;
+      const gameId = Number(btn.dataset.game);
+      const teamId = Number(btn.dataset.team);
+      const previous = myPicks[gameId];
+      myPicks[gameId] = teamId; // optimistic
+      render();
+      try {
+        await rpc("submit_pick", { p_token: token, p_game_id: gameId, p_team_id: teamId });
+      } catch (err) {
+        myPicks[gameId] = previous;
+        render();
+        showNotice(msg, `Pick not saved: ${esc(err.message)}`, true);
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
