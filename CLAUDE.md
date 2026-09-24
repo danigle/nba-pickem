@@ -23,6 +23,8 @@ Preseason (starts Oct 3) is the test window only — preseason games never count
 - **Pick visibility:** other players' picks are hidden until that game locks
 - **Postponed/cancelled games:** voided — no point, no penalty
 - **Reminders:** manual (group text) for V1
+- **Onboarding:** Daniel sends each player their private link by text or Discord. A script generates tokens + prints links.
+- **Late joiners:** allowed; they start at 0 points.
 - **Budget:** $0 (free tiers only)
 
 ## Slate Selection Rules
@@ -83,7 +85,7 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 2. Python ingestion job: teams, full-season schedule, daily score updates
 3. Slate generator (Python) + team preferences config, runs Monday morning
 4. Pick page: view this week's games, tap a team, see locked state
-5. Standings page: weekly + season
+5. Standings page (standings only: weekly + season points) and weekly picks page (every player's picks per week, shown only for locked games)
 6. Preseason test with friends; fix what breaks
 
 ## Out of Scope for V1
