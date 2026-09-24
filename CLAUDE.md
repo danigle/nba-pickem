@@ -9,7 +9,14 @@ Priority: **ease of use** over features. Friends-first; build clean enough to gr
 
 ## Hard Deadline
 2026–27 NBA regular season opens **Tuesday, Oct 20, 2026**. Target a working V1 by then.
-Preseason (starts Oct 3) is the test window only — preseason games never count toward the league.
+Preseason (starts Oct 3) is NOT a hard target. Testing uses fake seeded games (a script creates test games with tip-offs a few hours out; a wipe script removes them before launch). Preseason games never count toward the league.
+
+## Setup Status
+- [x] GitHub repo is public (required for free GitHub Pages)
+- [ ] Supabase project (URL, anon key, service role key) — Daniel, week of Sep 28
+- [ ] balldontlie API key — Daniel, week of Sep 28
+- [ ] GitHub Pages enabled (serve `/site` from `main`)
+- [ ] Actions secrets: `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
 
 ## Locked Decisions
 - **Games:** regular season only. No preseason, Play-In, playoffs, or NBA Cup Final (the Cup Final doesn't count toward NBA standings either).
@@ -86,7 +93,8 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 3. Slate generator (Python) + team preferences config, runs Monday morning
 4. Pick page: view this week's games, tap a team, see locked state
 5. Standings page (standings only: weekly + season points) and weekly picks page (every player's picks per week, shown only for locked games)
-6. Preseason test with friends; fix what breaks
+6. Test with friends on fake seeded games; fix what breaks
+7. Wipe test data, load real data, generate Week 1 slate Mon Oct 19
 
 ## Out of Scope for V1
 Spreads, confidence points, tiebreakers, chat, native app, multiple leagues, public signup, AI features, automated reminders.
@@ -95,3 +103,4 @@ Spreads, confidence points, tiebreakers, chat, native app, multiple leagues, pub
 - Owner: Daniel. Comfortable with SQL and Python; prefers direct, concise explanations.
 - Keep code simple and readable over clever.
 - Ask before adding dependencies or anything that could cost money.
+- Approved dependencies: `requests` (Python jobs), `pytest` (dev only). Front end uses plain `fetch()` — no JS libraries.
