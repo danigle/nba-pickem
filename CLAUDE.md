@@ -39,9 +39,12 @@ Preseason (starts Oct 3) is the test window only — preseason games never count
 
 ### Team Preferences (commissioner's thumb on the scale)
 Daniel can add his own rules and favoritism. Preferences live in a versioned config file in the repo (e.g., `slate_prefs.toml`, read with Python's stdlib `tomllib` — no new dependency), not hard-coded in the generator.
-- **Per-team weight:** 1.0 = neutral, >1 = favored in the random fill, 0 = never picked in the random fill
+- **Per-team weight:** 1.0 = neutral, >1 = favored in the random fill, 0 = never picked in the random fill. A game's weight is derived from its two teams; if either team has weight 0, the game is excluded from the random fill.
+- **Weights apply to the random fill only (rule 4).** The top-team game (rule 3) ignores weights, so a weight-0 team can still appear via rule 3 if it's a top team.
 - **Repeat priority:** ordered list of who gets a second appearance first when rule 5 must be relaxed; a blocklist of teams that never get a repeat
-- Current preferences: **Sacramento Kings always get the nod** when rules are relaxed. **Los Angeles Lakers never get the nod.**
+- Current preferences:
+  - **Sacramento Kings:** first in repeat priority — always get the nod when rules are relaxed.
+  - **Los Angeles Lakers:** weight 0 (never in the random fill) and on the repeat blocklist. Can still appear only as the rule-3 top-team game.
 - New rule types get added to the config + generator as needed; each one must stay deterministic under the seed.
 
 ## Stack ($0)
