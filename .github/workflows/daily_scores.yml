@@ -1,0 +1,41 @@
+name: Daily scores
+
+# Refreshes the whole season from balldontlie: scores, statuses, reschedules.
+# Also keeps the Supabase free tier from pausing.
+# Turned off until the repo variable PICKEM_ENABLED is set to "true".
+
+on:
+  schedule:
+    - cron: "0 10 * * *"   # 10:00 UTC = 3am PDT / 2am PST, after West Coast games end
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # lets the keep-alive step re-enable scheduled workflows
+
+concurrency: pickem-jobs
+
+jobs:
+  scores:
+    if: vars.PICKEM_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r jobs/requirements.txt
+      - run: python jobs/ingest_schedule.py
+      # GitHub disables scheduled workflows after 60 days without repo
+      # activity. Re-enabling them via the API is meant to reset that clock.
+      - name: Keep scheduled workflows enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow enable daily_scores.yml --repo "$GITHUB_REPOSITORY"
+          gh workflow enable weekly_slate.yml --repo "$GITHUB_REPOSITORY"

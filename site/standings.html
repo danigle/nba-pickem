@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Standings · NBA Pick'em</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🏀 NBA Pick'em</h1>
+    <nav>
+      <a href="index.html">My Picks</a>
+      <a href="picks.html">Weekly Picks</a>
+      <a href="standings.html" class="active">Standings</a>
+    </nav>
+  </header>
+  <main>
+    <div id="message"></div>
+    <h2 id="season-title" hidden>Season</h2>
+    <div class="table-wrap" id="season"></div>
+    <h2 id="week-title" hidden>Week</h2>
+    <select id="week" aria-label="Week" hidden></select>
+    <div class="table-wrap" id="weekly"></div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const msg = document.getElementById("message");
+    const weekSelect = document.getElementById("week");
+
+    function table(rows) {
+      if (!rows.length) return "<p class='subhead'>No players yet.</p>";
+      const body = rankRows(rows).map((r) =>
+        `<tr><td class="num">${r.rank}</td><td>${esc(r.display_name)}</td><td class="num">${r.points}</td></tr>`).join("");
+      return `<table><thead><tr><th class="num">#</th><th>Player</th><th class="num">Pts</th></tr></thead>
+              <tbody>${body}</tbody></table>`;
+    }
+
+    async function showWeek(weekId) {
+      const rows = await api(`weekly_standings?select=display_name,points&week_id=eq.${weekId}&order=points.desc,display_name.asc`);
+      document.getElementById("weekly").innerHTML = table(rows);
+    }
+
+    async function init() {
+      if (!requireConfig(msg)) return;
+      try {
+        const weeks = await loadWeeks();
+        const current = currentWeek(weeks);
+        if (!current) {
+          showNotice(msg, "No standings yet. The season hasn't started.");
+          return;
+        }
+        const seasonRows = await api(`season_standings?select=display_name,points&season=eq.${current.season}&order=points.desc,display_name.asc`);
+        document.getElementById("season-title").textContent =
+          current.is_test ? "Test season" : `${current.season}–${String(current.season + 1).slice(2)} season`;
+        document.getElementById("season-title").hidden = false;
+        document.getElementById("season").innerHTML = table(seasonRows);
+
+        const today = todayPT();
+        weekSelect.innerHTML = weeks
+          .filter((w) => w.season === current.season && (w.start_date <= today || w.id === current.id))
+          .reverse()
+          .map((w) => `<option value="${w.id}">${esc(weekLabel(w))}</option>`)
+          .join("");
+        weekSelect.value = current.id;
+        document.getElementById("week-title").hidden = false;
+        weekSelect.hidden = false;
+        weekSelect.addEventListener("change", () => showWeek(Number(weekSelect.value)));
+        await showWeek(current.id);
+      } catch (e) {
+        showNotice(msg, `Couldn't load standings: ${esc(e.message)}`, true);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

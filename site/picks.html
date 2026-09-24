@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Weekly Picks · NBA Pick'em</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🏀 NBA Pick'em</h1>
+    <nav>
+      <a href="index.html">My Picks</a>
+      <a href="picks.html" class="active">Weekly Picks</a>
+      <a href="standings.html">Standings</a>
+    </nav>
+  </header>
+  <main>
+    <p class="subhead">Everyone's picks. Each game's picks appear once it tips off.</p>
+    <div id="message"></div>
+    <select id="week" aria-label="Week" hidden></select>
+    <div class="table-wrap" id="grid"></div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const msg = document.getElementById("message");
+    const grid = document.getElementById("grid");
+    const weekSelect = document.getElementById("week");
+    let teams = {}, players = [], weeks = [];
+
+    async function init() {
+      if (!requireConfig(msg)) return;
+      try {
+        [teams, players, weeks] = await Promise.all([loadTeams(), loadPlayers(), loadWeeks()]);
+        const current = currentWeek(weeks);
+        if (!current) {
+          showNotice(msg, "No slates yet.");
+          return;
+        }
+        const today = todayPT();
+        weekSelect.innerHTML = weeks
+          .filter((w) => w.start_date <= today || w.id === current.id)
+          .reverse()
+          .map((w) => `<option value="${w.id}">${esc(weekLabel(w))}</option>`)
+          .join("");
+        weekSelect.value = current.id;
+        weekSelect.hidden = false;
+        weekSelect.addEventListener("change", () => showWeek(Number(weekSelect.value)));
+        await showWeek(current.id);
+      } catch (e) {
+        showNotice(msg, `Couldn't load picks: ${esc(e.message)}`, true);
+      }
+    }
+
+    async function showWeek(weekId) {
+      msg.innerHTML = "";
+      const [games, picks] = await Promise.all([
+        loadSlateGames(weekId),
+        rpc("get_week_picks", { p_week_id: weekId }),
+      ]);
+      if (!games.length) {
+        grid.innerHTML = "";
+        showNotice(msg, "No games this week.");
+        return;
+      }
+      const byKey = Object.fromEntries(picks.map((p) => [`${p.player_id}:${p.game_id}`, p]));
+      const abbr = (id) => esc((teams[id] || {}).abbreviation || "?");
+
+      const header = `<tr><th>Game</th>${players.map((p) => `<th>${esc(p.display_name)}</th>`).join("")}</tr>`;
+      const rows = games.map((g) => {
+        const score = g.status === "final" ? ` ${g.away_score}–${g.home_score}` : "";
+        const cells = players.map((p) => {
+          if (!isLocked(g)) return `<td class="pick hidden" title="Hidden until tip-off">🔒</td>`;
+          const pick = byKey[`${p.id}:${g.id}`];
+          if (!pick) return `<td class="pick none">—</td>`;
+          const cls = pick.is_correct === true ? "correct" : pick.is_correct === false ? "wrong" : "";
+          return `<td class="pick ${cls}">${abbr(pick.picked_team_id)}</td>`;
+        }).join("");
+        return `<tr><td>${abbr(g.away_team_id)} @ ${abbr(g.home_team_id)}${score}<br>
+                  <small class="subhead">${tipoffLabel(g)}</small></td>${cells}</tr>`;
+      }).join("");
+
+      grid.innerHTML = `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+    }
+
+    init();
+  </script>
+</body>
+</html>

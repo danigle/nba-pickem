@@ -9,7 +9,18 @@ Priority: **ease of use** over features. Friends-first; build clean enough to gr
 
 ## Hard Deadline
 2026–27 NBA regular season opens **Tuesday, Oct 20, 2026**. Target a working V1 by then.
-Preseason (starts Oct 3) is the test window only — preseason games never count toward the league.
+Preseason (starts Oct 3) is NOT a hard target. Testing uses fake seeded games (a script creates test games with tip-offs a few hours out; a wipe script removes them before launch). Preseason games never count toward the league.
+
+## Setup Status
+Code is built with placeholders (see README.md for the full setup steps).
+- [x] GitHub repo is public (required for free GitHub Pages)
+- [x] Schema, pick functions, jobs, slate generator, site, workflows — built; SQL + security tested on local Postgres 16, slate logic unit-tested, pages tested against a mocked API
+- [ ] Supabase project; run `supabase/migrations/001`–`004` — Daniel, week of Sep 28
+- [ ] balldontlie API key — Daniel, week of Sep 28
+- [ ] `site/config.js`: real Supabase URL + anon key
+- [ ] Actions secrets: `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
+- [ ] Pages source = GitHub Actions; repo variable `PICKEM_ENABLED=true` (jobs + deploy skip until set)
+- [ ] Verify against live balldontlie data: tip-off field, status strings, historical teams, preseason/Cup Final flags
 
 ## Locked Decisions
 - **Games:** regular season only. No preseason, Play-In, playoffs, or NBA Cup Final (the Cup Final doesn't count toward NBA standings either).
@@ -71,14 +82,17 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 - **GitHub Actions cron:** runs in UTC, can start late, and scheduled workflows are disabled after 60 days without repo activity.
 - **GitHub Pages (free)** requires a public repo — only the Supabase anon key may appear in front-end code.
 
-## Data Model (starting sketch)
-- `teams` (id, name, abbreviation)
-- `games` (id, season, game_date, tipoff_utc, home_team_id, away_team_id, home_score, away_score, status)
-- `weeks` (id, season, week_num, start_date, end_date)
+## Data Model (see `supabase/migrations/`)
+- `teams` (id = balldontlie id, abbreviation, city, name, full_name)
+- `games` (id = balldontlie id, season, game_date, tipoff_utc, home/away team + score, status, game_type, is_test)
+  - status: scheduled | in_progress | final | postponed; game_type: regular | preseason | postseason | cup_final
+- `weeks` (season, week_num, start_date, end_date, slate_generated_at, slate_inputs jsonb, is_test)
 - `slate_games` (week_id, game_id)
-- `players` (id, display_name, access_token)
-- `picks` (player_id, game_id, picked_team_id, created_at, updated_at) — unique(player_id, game_id)
-- views: `team_records` (regular season only), `weekly_standings`, `season_standings`
+- `players` (display_name, access_token) — never readable by anon
+- `picks` (player_id, game_id, picked_team_id, created_at, updated_at) — PK(player_id, game_id); never readable by anon
+- views: `players_public`, `team_records`, `pick_results` (internal), `weekly_standings`, `season_standings`
+- functions (the only way the site touches picks): `get_me`, `submit_pick`, `get_my_picks`, `get_week_picks`
+- Test data: season 0, negative game ids, is_test = true (`jobs/fake_week.py wipe` removes it)
 
 ## Build Order
 1. Supabase schema + lock/pick functions
@@ -86,7 +100,8 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 3. Slate generator (Python) + team preferences config, runs Monday morning
 4. Pick page: view this week's games, tap a team, see locked state
 5. Standings page (standings only: weekly + season points) and weekly picks page (every player's picks per week, shown only for locked games)
-6. Preseason test with friends; fix what breaks
+6. Test with friends on fake seeded games; fix what breaks
+7. Wipe test data, load real data, generate Week 1 slate Mon Oct 19
 
 ## Out of Scope for V1
 Spreads, confidence points, tiebreakers, chat, native app, multiple leagues, public signup, AI features, automated reminders.
@@ -95,3 +110,4 @@ Spreads, confidence points, tiebreakers, chat, native app, multiple leagues, pub
 - Owner: Daniel. Comfortable with SQL and Python; prefers direct, concise explanations.
 - Keep code simple and readable over clever.
 - Ask before adding dependencies or anything that could cost money.
+- Approved dependencies: `requests` (Python jobs), `pytest` (dev only). Front end uses plain `fetch()` — no JS libraries.
