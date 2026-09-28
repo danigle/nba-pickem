@@ -3,13 +3,7 @@
 -- anon = the public website (anon key). The Python jobs use the service role
 -- key, which bypasses RLS.
 
--- 1. RLS on every table. No policy = no access.
-alter table teams       enable row level security;
-alter table games       enable row level security;
-alter table weeks       enable row level security;
-alter table slate_games enable row level security;
-alter table players     enable row level security;
-alter table picks       enable row level security;
+-- 1. RLS is enabled on every table in 001 (no policy = no access).
 
 -- 2. Strip Supabase's default grants from the public roles.
 revoke all on all tables    in schema public from anon, authenticated;

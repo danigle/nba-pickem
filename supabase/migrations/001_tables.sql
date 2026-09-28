@@ -61,3 +61,12 @@ create table picks (
   updated_at      timestamptz not null default now(),
   primary key (player_id, game_id)
 );
+
+-- Row Level Security on every table: with no policy, the public website (anon)
+-- can't touch a table at all. 004 opens up only what the site needs.
+alter table teams       enable row level security;
+alter table games       enable row level security;
+alter table weeks       enable row level security;
+alter table slate_games enable row level security;
+alter table players     enable row level security;
+alter table picks       enable row level security;
