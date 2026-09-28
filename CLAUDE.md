@@ -17,9 +17,10 @@ Code is built with placeholders (see README.md for the full setup steps).
 - [x] Schema, pick functions, jobs, slate generator, site, workflows — built; SQL + security tested on local Postgres 16, slate logic unit-tested, pages tested against a mocked API
 - [ ] Supabase project; run `supabase/migrations/001`–`004` — Daniel, week of Sep 28
 - [ ] balldontlie API key — Daniel, week of Sep 28
-- [ ] `site/config.js`: real Supabase URL + anon key
+- [ ] `site/config.js`: real Supabase URL + publishable (or legacy anon) key
 - [ ] Actions secrets: `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
 - [ ] Pages source = GitHub Actions; repo variable `PICKEM_ENABLED=true` (jobs + deploy skip until set)
+- [ ] Actions → Admin → `load-data`; add players via Supabase SQL editor (never print tokens in public Action logs)
 - [ ] Verify against live balldontlie data: tip-off field, status strings, historical teams, preseason/Cup Final flags
 
 ## Locked Decisions

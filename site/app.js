@@ -8,14 +8,10 @@ function isConfigured() {
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(`${CFG.supabaseUrl}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: CFG.supabaseAnonKey,
-      Authorization: `Bearer ${CFG.supabaseAnonKey}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const headers = { apikey: CFG.supabaseAnonKey, "Content-Type": "application/json" };
+  // Legacy anon keys are JWTs and also go in Authorization. New sb_publishable_ keys don't.
+  if (!CFG.supabaseAnonKey.startsWith("sb_")) headers.Authorization = `Bearer ${CFG.supabaseAnonKey}`;
+  const res = await fetch(`${CFG.supabaseUrl}/rest/v1/${path}`, { ...options, headers });
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
   if (!res.ok) throw new Error((body && body.message) || `Request failed (${res.status})`);
