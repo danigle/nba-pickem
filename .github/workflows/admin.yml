@@ -12,6 +12,7 @@ on:
         description: "Task"
         type: choice
         options:
+          - check-connection   # confirm the secrets reach Supabase (and balldontlie, if set)
           - load-data          # teams + last season + this season
           - slate-preview      # dry run: show a week's slate, save nothing
           - fake-week-create   # 7 fake games, first tip-off in 60 min
@@ -45,6 +46,9 @@ jobs:
       - name: Run task
         run: |
           case "$TASK" in
+            check-connection)
+              python jobs/check_connection.py
+              ;;
             load-data)
               python jobs/ingest_teams.py
               python jobs/ingest_schedule.py --season "$(python -c 'import tomllib;print(tomllib.load(open("jobs/league.toml","rb"))["last_season"])')"
