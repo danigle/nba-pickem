@@ -16,24 +16,32 @@ The project brief and rules are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Setup (one time)
 
-1. **Supabase:** create a free project. In the SQL editor, run `supabase/migrations/001` → `004` in order.
-2. **balldontlie:** create a free account and copy the API key.
-3. **GitHub secrets** (Settings → Secrets and variables → Actions → Secrets):
-   `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the service_role key).
-4. **Site config:** put the project URL and **anon** key in `site/config.js`.
-5. **GitHub Pages:** Settings → Pages → Source: **GitHub Actions**.
-6. **Turn it on:** Settings → Secrets and variables → Actions → Variables → add `PICKEM_ENABLED` = `true`.
+### Supabase (~15 min)
+1. Sign up at supabase.com → **New project**. Free plan; region **West US**; save the database password in your password manager. Leave the Data API enabled.
+2. **SQL Editor → New query:** paste and **Run** each file in `supabase/migrations/`, in order: `001` → `002` → `003` → `004`. Each should say "Success. No rows returned."
+3. **Check:** Table Editor lists 6 tables, none flagged "RLS disabled". (RLS is switched on by `004`; nothing to toggle by hand.) Security Advisor may flag the views as "Security Definer View". That's intentional: it's how the views show standings without exposing tokens.
+4. **Keys:** Project Settings → API Keys. Note the project URL, the **publishable** key (or legacy anon), and the **secret** key (or legacy service_role).
+
+### GitHub (~10 min)
+5. **Secrets** (Settings → Secrets and variables → Actions → Secrets):
+   `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the secret key).
+6. **Site config:** put the project URL and **publishable** key in `site/config.js`.
+7. **Pages:** Settings → Pages → Source: **GitHub Actions**.
+8. **Turn it on:** Settings → Secrets and variables → Actions → Variables → `PICKEM_ENABLED` = `true`.
    Until this exists, the scheduled jobs and the Pages deploy skip themselves.
-7. **Load data** (locally, with the three env vars set, or via the workflows' "Run workflow" button):
-   ```
-   pip install -r jobs/requirements.txt
-   python jobs/ingest_teams.py
-   python jobs/ingest_schedule.py --season 2025   # last season (weeks 1–3 rankings)
-   python jobs/ingest_schedule.py                 # this season
-   ```
-8. **Players:** `python jobs/make_player.py "Name"` prints the private link to send.
+
+### Data and players
+9. **Load data:** Actions → **Admin** → Run workflow → `load-data` (~6 min: teams, last season, this season).
+10. **Players:** in the Supabase SQL editor (keeps tokens out of public logs):
+    ```sql
+    insert into players (display_name) values ('Daniel'), ('Pat')
+    returning display_name, 'https://danigle.github.io/nba-pickem/?t=' || access_token as link;
+    ```
+    Or locally: `python jobs/make_player.py "Name"` (needs the three env vars).
 
 ## Testing with fake games
+
+Actions → **Admin** → `fake-week-create` / `fake-week-finish` / `fake-week-wipe`, or locally:
 
 ```
 python jobs/fake_week.py create --start-in 30 --spacing 20   # 7 fake games, first tips in 30 min

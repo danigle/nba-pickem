@@ -17,11 +17,10 @@ class Supabase:
         if not url or not key:
             raise SystemExit("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
         self.base = url.rstrip("/") + "/rest/v1"
-        self.headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        }
+        self.headers = {"apikey": key, "Content-Type": "application/json"}
+        # Legacy keys are JWTs and also go in Authorization. New sb_secret_ keys don't.
+        if not key.startswith("sb_"):
+            self.headers["Authorization"] = f"Bearer {key}"
 
     def _request(self, method, path, params=None, json=None, prefer=None):
         headers = dict(self.headers)

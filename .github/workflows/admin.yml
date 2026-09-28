@@ -1,0 +1,60 @@
+name: Admin
+
+# One-click admin tasks (Actions → Admin → Run workflow).
+# Uses the repo secrets, so the Supabase secret key never leaves GitHub.
+# Logs are PUBLIC on a public repo: nothing here prints player tokens.
+# (Add players in the Supabase SQL editor instead; see README.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Task"
+        type: choice
+        options:
+          - load-data          # teams + last season + this season
+          - slate-preview      # dry run: show a week's slate, save nothing
+          - fake-week-create   # 7 fake games, first tip-off in 60 min
+          - fake-week-finish   # final scores for fake games that tipped off
+          - fake-week-wipe     # delete all test data
+      week:
+        description: "Week number (slate-preview only; blank = this week)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency: pickem-jobs
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      TASK: ${{ inputs.task }}
+      WEEK: ${{ inputs.week }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r jobs/requirements.txt
+      - name: Run task
+        run: |
+          case "$TASK" in
+            load-data)
+              python jobs/ingest_teams.py
+              python jobs/ingest_schedule.py --season "$(python -c 'import tomllib;print(tomllib.load(open("jobs/league.toml","rb"))["last_season"])')"
+              python jobs/ingest_schedule.py
+              ;;
+            slate-preview)
+              if [ -n "$WEEK" ]; then python jobs/generate_slate.py --dry-run --week "$WEEK"
+              else python jobs/generate_slate.py --dry-run; fi
+              ;;
+            fake-week-create) python jobs/fake_week.py create ;;
+            fake-week-finish) python jobs/fake_week.py finish ;;
+            fake-week-wipe)   python jobs/fake_week.py wipe ;;
+          esac
