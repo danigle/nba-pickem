@@ -2,6 +2,6 @@
 // Supabase → Project Settings → API. The anon key is safe to publish;
 // NEVER put the service_role key here.
 window.PICKEM_CONFIG = {
-  supabaseUrl: "https://YOUR-PROJECT.supabase.co",
-  supabaseAnonKey: "YOUR-ANON-KEY",
+  supabaseUrl: "https://sfcqadtdfgxtmwkdomeb.supabase.co",
+  supabaseAnonKey: "sb_publishable_EMTLNQBvB3cqvWCVC70_7w_LFJe5_CJ",
 };
