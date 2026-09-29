@@ -15,12 +15,18 @@ on:
           - check-connection   # confirm the secrets reach Supabase (and balldontlie, if set)
           - load-data          # teams + last season + this season
           - slate-preview      # dry run: show a week's slate, save nothing
-          - fake-week-create   # 7 fake games, first tip-off in 60 min
+          - fake-week-create   # 7 fake games (timing set below)
           - fake-week-finish   # final scores for fake games that tipped off
           - fake-week-wipe     # delete all test data
       week:
         description: "Week number (slate-preview only; blank = this week)"
         required: false
+      start_in:
+        description: "fake-week-create: minutes until the first tip-off"
+        default: "60"
+      spacing:
+        description: "fake-week-create: minutes between tip-offs"
+        default: "30"
 
 permissions:
   contents: read
@@ -37,6 +43,8 @@ jobs:
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       TASK: ${{ inputs.task }}
       WEEK: ${{ inputs.week }}
+      START_IN: ${{ inputs.start_in }}
+      SPACING: ${{ inputs.spacing }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -58,7 +66,7 @@ jobs:
               if [ -n "$WEEK" ]; then python jobs/generate_slate.py --dry-run --week "$WEEK"
               else python jobs/generate_slate.py --dry-run; fi
               ;;
-            fake-week-create) python jobs/fake_week.py create ;;
+            fake-week-create) python jobs/fake_week.py create --start-in "$START_IN" --spacing "$SPACING" ;;
             fake-week-finish) python jobs/fake_week.py finish ;;
             fake-week-wipe)   python jobs/fake_week.py wipe ;;
           esac
