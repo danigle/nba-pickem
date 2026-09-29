@@ -20,6 +20,7 @@ cup_final_game_ids = [
 
 # Last regular-season game date per season. Anything later is Play-In or
 # playoffs (balldontlie doesn't flag Play-In games as postseason).
-# 2026: fill in from the "Regular season dates" line in the load-data log.
+# Each season: copy from the "Regular season dates" line in the load-data log.
 [season_ends]
 2025 = 2026-04-12
+2026 = 2027-04-11
