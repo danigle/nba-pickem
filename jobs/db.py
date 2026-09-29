@@ -4,6 +4,7 @@ The service key bypasses RLS. It lives in GitHub Actions secrets (or your
 local shell) — never in the repo.
 """
 import os
+import re
 
 import requests
 
@@ -16,6 +17,11 @@ class Supabase:
         key = key or os.environ.get("SUPABASE_SERVICE_KEY")
         if not url or not key:
             raise SystemExit("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
+        if not re.fullmatch(r"https://[a-z0-9]+\.supabase\.co/?", url.strip()):
+            raise SystemExit(
+                "SUPABASE_URL should look like https://<project-ref>.supabase.co "
+                "(Project Settings → Data API), not the dashboard address")
+        url = url.strip()
         self.base = url.rstrip("/") + "/rest/v1"
         self.headers = {"apikey": key, "Content-Type": "application/json"}
         # Legacy keys are JWTs and also go in Authorization. New sb_secret_ keys don't.
@@ -29,7 +35,7 @@ class Supabase:
         resp = requests.request(method, f"{self.base}/{path}", headers=headers,
                                 params=params, json=json, timeout=60)
         if not resp.ok:
-            raise RuntimeError(f"{method} {path} failed ({resp.status_code}): {resp.text}")
+            raise RuntimeError(f"{method} {path} failed ({resp.status_code}): {resp.text[:300]}")
         return resp.json() if resp.content else None
 
     def select(self, table, params=()):
