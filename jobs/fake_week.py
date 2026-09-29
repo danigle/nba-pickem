@@ -69,7 +69,13 @@ def finish(db):
         home, away = random.sample(range(95, 131), 2)  # distinct → no ties
         db.update("games", [("id", f"eq.{g['id']}")],
                   {"home_score": home, "away_score": away, "status": "final"})
-    print(f"Finished {len(games)} test games")
+    print(f"Finished {len(games)} test games (only games past tip-off get scores)")
+
+    upcoming = db.select("games", [("select", "tipoff_utc"), ("is_test", "eq.true"),
+                                   ("status", "eq.scheduled"), ("order", "tipoff_utc.asc")])
+    if upcoming:
+        next_tip = datetime.fromisoformat(upcoming[0]["tipoff_utc"]).astimezone(PT)
+        print(f"{len(upcoming)} test games still to tip off; next at {next_tip:%I:%M %p} PT")
 
 
 def wipe(db):

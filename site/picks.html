@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#141b2d">
   <title>Weekly Picks · NBA Pick'em</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -69,21 +70,54 @@
       const byKey = Object.fromEntries(picks.map((p) => [`${p.player_id}:${p.game_id}`, p]));
       const abbr = (id) => esc((teams[id] || {}).abbreviation || "?");
 
-      const header = `<tr><th>Game</th>${players.map((p) => `<th>${esc(p.display_name)}</th>`).join("")}</tr>`;
-      const rows = games.map((g) => {
-        const score = g.status === "final" ? ` ${g.away_score}–${g.home_score}` : "";
-        const cells = players.map((p) => {
-          if (!isLocked(g)) return `<td class="pick hidden" title="Hidden until tip-off">🔒</td>`;
-          const pick = byKey[`${p.id}:${g.id}`];
-          if (!pick) return `<td class="pick none">—</td>`;
-          const cls = pick.is_correct === true ? "correct" : pick.is_correct === false ? "wrong" : "";
-          return `<td class="pick ${cls}">${abbr(pick.picked_team_id)}</td>`;
-        }).join("");
-        return `<tr><td>${abbr(g.away_team_id)} @ ${abbr(g.home_team_id)}${score}<br>
-                  <small class="subhead">${tipoffLabel(g)}</small></td>${cells}</tr>`;
-      }).join("");
+      // Players are rows (the league can grow), games are columns (7 at most).
+      const points = (p) => games.filter((g) => byKey[`${p.id}:${g.id}`]?.is_correct === true).length;
+      const ranked = players
+        .map((p) => ({ ...p, pts: points(p) }))
+        .sort((a, b) => b.pts - a.pts || a.display_name.localeCompare(b.display_name));
+
+      const gameHead = (g) => {
+        const score = `${g.away_score ?? 0}–${g.home_score ?? 0}`;
+        const detail = g.status === "final" ? score
+          : g.status === "in_progress" ? `Live ${score}`
+          : g.status === "postponed" ? "Postponed"
+          : shortTip(g);
+        return `<th class="game-col"><span class="matchup">${abbr(g.away_team_id)}</span>` +
+               `<span class="matchup">@${abbr(g.home_team_id)}</span><small>${detail}</small></th>`;
+      };
+      const header = `<tr><th class="player-col">Player</th><th class="num pts-col">Pts</th>${games.map(gameHead).join("")}</tr>`;
+
+      const cell = (p, g) => {
+        if (!isLocked(g)) return `<td class="pick hidden" title="Hidden until tip-off">🔒</td>`;
+        const pick = byKey[`${p.id}:${g.id}`];
+        if (!pick) return `<td class="pick none">—</td>`;
+        const cls = pick.is_correct === true ? "correct" : pick.is_correct === false ? "wrong" : "";
+        const mark = pick.is_correct === true ? " ✓" : pick.is_correct === false ? " ✗" : "";
+        return `<td class="pick ${cls}">${abbr(pick.picked_team_id)}${mark}</td>`;
+      };
+      const rows = ranked.map((p) =>
+        `<tr><td class="player-col">${esc(p.display_name)}</td><td class="num pts-col">${p.pts}</td>` +
+        `${games.map((g) => cell(p, g)).join("")}</tr>`).join("");
 
       grid.innerHTML = `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+      pinPoints();
+      document.fonts.ready.then(pinPoints); // fonts can change the name column's width
+    }
+
+    // Pin the Pts column right after the name column, however wide the longest name is.
+    function pinPoints() {
+      const table = grid.querySelector("table");
+      const nameCol = table?.querySelector(".player-col");
+      if (nameCol) table.style.setProperty("--name-w", `${nameCol.offsetWidth}px`);
+    }
+
+    // "Sat 7:00p": short enough to keep game columns narrow on phones.
+    function shortTip(g) {
+      if (!g.tipoff_utc) return "TBD";
+      const d = new Date(g.tipoff_utc);
+      const day = d.toLocaleString("en-US", { weekday: "short" });
+      const time = d.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" AM", "a").replace(" PM", "p");
+      return `${day} ${time}`;
     }
 
     init();

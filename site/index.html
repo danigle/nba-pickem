@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#141b2d">
   <title>My Picks · NBA Pick'em</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -29,7 +30,10 @@
     const msg = document.getElementById("message");
     const list = document.getElementById("games");
     const subhead = document.getElementById("subhead");
-    let teams = {}, games = [], myPicks = {}, week = null;
+    let teams = {}, games = [], week = null;
+    let saved = {};    // picks stored in the database: game_id -> team_id
+    let saving = {};   // taps waiting on the database: game_id -> team_id
+    let queue = {};    // per-game save chain, so quick re-taps save in order
 
     async function init() {
       if (!requireConfig(msg)) return;
@@ -52,6 +56,7 @@
         subhead.textContent = `Hi, ${me.display_name} · ${weekLabel(week)}`;
         games = await loadSlateGames(week.id);
         await refreshPicks();
+        showSummary();
         render();
         setInterval(render, 30000); // flip games to locked as tip-offs pass
       } catch (e) {
@@ -61,35 +66,52 @@
 
     async function refreshPicks() {
       const rows = await rpc("get_my_picks", { p_token: token, p_week_id: week.id });
-      myPicks = Object.fromEntries(rows.map((r) => [r.game_id, r.picked_team_id]));
+      saved = Object.fromEntries(rows.map((r) => [r.game_id, r.picked_team_id]));
+    }
+
+    const pickedCount = () => games.filter((g) => saved[g.id]).length;
+
+    function showSummary() {
+      if (!games.length) {
+        showNotice(msg, "No games this week (e.g., All-Star break). Enjoy the week off.");
+        return;
+      }
+      const needPick = games.filter((g) => !isLocked(g) && !saved[g.id]).length;
+      showNotice(msg, `<strong>${pickedCount()} of ${games.length} picked.</strong> ` +
+        (needPick ? `${needPick} open game${needPick > 1 ? "s still need" : " still needs"} a pick. ` : "You're all set. ") +
+        "Each tap saves instantly; change any pick until tip-off.");
     }
 
     function teamButton(game, teamId, score) {
       const t = teams[teamId] || { abbreviation: "?", name: "" };
-      const picked = myPicks[game.id] === teamId;
+      const picked = (saving[game.id] ?? saved[game.id]) === teamId;
       const winner = winnerId(game);
       const classes = ["team-btn"];
       if (picked) classes.push("picked");
+      if (picked && saving[game.id]) classes.push("saving");
       if (picked && winner) classes.push(winner === teamId ? "correct" : "wrong");
+      // ✓ / ✗ so right and wrong never rely on color alone.
+      const mark = picked && winner ? (winner === teamId ? " ✓" : " ✗") : "";
       return `<button class="${classes.join(" ")}" data-game="${game.id}" data-team="${teamId}"
                 ${isLocked(game) ? "disabled" : ""} aria-pressed="${picked}">
-                <span class="abbr">${esc(t.abbreviation)}</span>
+                <span class="abbr">${esc(t.abbreviation)}${mark}</span>
                 <span class="name">${esc(t.name)}</span>
                 ${game.status === "final" || game.status === "in_progress" ? `<span class="score">${score ?? ""}</span>` : ""}
               </button>`;
     }
 
+    function pickState(game) {
+      if (saving[game.id]) return `<span class="pick-state">Saving…</span>`;
+      if (saved[game.id]) return `<span class="pick-state ok">✓ Pick saved</span>`;
+      if (!isLocked(game)) return `<span class="pick-state todo">No pick yet</span>`;
+      return "";
+    }
+
     function render() {
       if (!games.length) {
-        showNotice(msg, "No games this week (e.g., All-Star break). Enjoy the week off.");
         list.innerHTML = "";
         return;
       }
-      const picked = games.filter((g) => myPicks[g.id]).length;
-      const open = games.filter((g) => !isLocked(g) && !myPicks[g.id]).length;
-      showNotice(msg, `<strong>${picked} of ${games.length} picked.</strong> ` +
-        (open ? `${open} open game${open > 1 ? "s still need" : " still needs"} a pick. Picks lock at tip-off.` : "You're all set."));
-
       list.innerHTML = games.map((g) => `
         <div class="game">
           <div class="game-meta"><span>${tipoffLabel(g)}</span><span>${statusLabel(g)}</span></div>
@@ -98,6 +120,7 @@
             <span class="at">@</span>
             ${teamButton(g, g.home_team_id, g.home_score)}
           </div>
+          <div class="game-foot">${pickState(g)}</div>
         </div>`).join("");
     }
 
@@ -106,15 +129,33 @@
       if (!btn || btn.disabled) return;
       const gameId = Number(btn.dataset.game);
       const teamId = Number(btn.dataset.team);
-      const previous = myPicks[gameId];
-      myPicks[gameId] = teamId; // optimistic
+      if (saved[gameId] === teamId && !saving[gameId]) return;
+      saving[gameId] = teamId;
       render();
+      const abbr = esc((teams[teamId] || {}).abbreviation || "?");
       try {
-        await rpc("submit_pick", { p_token: token, p_game_id: gameId, p_team_id: teamId });
+        const save = (queue[gameId] || Promise.resolve()).catch(() => {})
+          .then(() => rpc("submit_pick", { p_token: token, p_game_id: gameId, p_team_id: teamId }));
+        queue[gameId] = save;
+        await save;
+        if (saving[gameId] !== teamId) return; // a newer tap on this game is queued
+        saved[gameId] = teamId;
+        delete saving[gameId];
+        const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        showNotice(msg, `<strong>✓ ${abbr} saved at ${time}.</strong> ${pickedCount()} of ${games.length} picked. ` +
+          "Change any pick until tip-off.");
       } catch (err) {
-        myPicks[gameId] = previous;
-        render();
-        showNotice(msg, `Pick not saved: ${esc(err.message)}`, true);
+        if (saving[gameId] === teamId) delete saving[gameId];
+        showNotice(msg, `<strong>${abbr} NOT saved:</strong> ${esc(err.message)}. Your previous pick still stands.`, true);
+      }
+      render();
+    });
+
+    // Warn before leaving while a pick is still being saved.
+    window.addEventListener("beforeunload", (e) => {
+      if (Object.keys(saving).length) {
+        e.preventDefault();
+        e.returnValue = "";
       }
     });
 

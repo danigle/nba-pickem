@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#141b2d">
   <title>Standings · NBA Pick'em</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -33,9 +34,15 @@
 
     function table(rows) {
       if (!rows.length) return "<p class='subhead'>No players yet.</p>";
-      const body = rankRows(rows).map((r) =>
-        `<tr><td class="num">${r.rank}</td><td>${esc(r.display_name)}</td><td class="num">${r.points}</td></tr>`).join("");
-      return `<table><thead><tr><th class="num">#</th><th>Player</th><th class="num">Pts</th></tr></thead>
+      const lead = rows[0].points;
+      const body = rankRows(rows).map((r) => {
+        const width = lead > 0 ? Math.round((r.points / lead) * 100) : 0;  // bar vs. the leader
+        const back = r.points === lead ? "—" : `−${lead - r.points}`;
+        return `<tr class="standing${r.rank === 1 && lead > 0 ? " leader" : ""}" style="--w:${width}%">
+                  <td class="num">${r.rank}</td><td>${esc(r.display_name)}</td>
+                  <td class="num">${r.points}</td><td class="num back">${back}</td></tr>`;
+      }).join("");
+      return `<table><thead><tr><th class="num">#</th><th>Player</th><th class="num">Pts</th><th class="num">Back</th></tr></thead>
               <tbody>${body}</tbody></table>`;
     }
 
