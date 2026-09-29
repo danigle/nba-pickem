@@ -20,10 +20,10 @@ See README.md for the full setup steps.
 - [x] `site/config.js`: real Supabase URL + publishable key
 - [x] `load-data` run (Sep 29): 30 teams; 2025–26 = 1,322 games; 2026–27 = 1,200 scheduled (the last 30 are scheduled in December after the Cup group stage)
 - [x] Live balldontlie data verified: every 2026–27 game has a tip-off time; statuses parse; historical teams filtered; no preseason games on the free tier; Play-In and Cup Final are NOT flagged as postseason, so they're handled via `season_ends` / `cup_final_game_ids` in `jobs/league.toml`
-- [ ] Pages source = GitHub Actions; repo variable `PICKEM_ENABLED=true` (jobs + deploy skip until set)
-- [ ] Add players via Supabase SQL editor (never print tokens in public Action logs)
+- [x] Reload verified: 2025–26 = 1,230 regular + 1 Cup Final + 91 postseason (incl. 6 Play-In); 2026–27 regular season Oct 20 – Apr 11
+- [x] Pages deployed; `PICKEM_ENABLED=true`; 3 players added; Week 1 slate preview passes every rule
 - [ ] Fake test week with friends
-- [ ] `league.toml`: add 2026 `season_ends` (from the load-data log) and the 2026–27 Cup Final id in December
+- [ ] December: add the 2026–27 Cup Final id to `cup_final_game_ids` in `jobs/league.toml`
 
 ## Locked Decisions
 - **Games:** regular season only. No preseason, Play-In, playoffs, or NBA Cup Final (the Cup Final doesn't count toward NBA standings either).
