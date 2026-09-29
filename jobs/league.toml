@@ -8,10 +8,18 @@ use_last_season_through_week = 3   # weeks 1–3 rank teams by last season's rec
 site_url = "https://danigle.github.io/nba-pickem/"
 
 # balldontlie game ids for NBA Cup Finals (don't count toward standings).
-# Fill in once the matchup is set in December.
-cup_final_game_ids = []
+# Add each season's id once the final is scheduled in December.
+cup_final_game_ids = [
+  20377171,  # 2025-26: SAS @ NYK, Dec 16 2025
+]
 
 # First regular-season game date per season. Anything earlier is preseason.
 [openers]
 2025 = 2025-10-21
 2026 = 2026-10-20
+
+# Last regular-season game date per season. Anything later is Play-In or
+# playoffs (balldontlie doesn't flag Play-In games as postseason).
+# 2026: fill in from the "Regular season dates" line in the load-data log.
+[season_ends]
+2025 = 2026-04-12
