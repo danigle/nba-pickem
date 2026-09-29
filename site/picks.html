@@ -77,7 +77,11 @@
         .sort((a, b) => b.pts - a.pts || a.display_name.localeCompare(b.display_name));
 
       const gameHead = (g) => {
-        const detail = g.status === "final" ? `${g.away_score}–${g.home_score}` : shortTip(g);
+        const score = `${g.away_score ?? 0}–${g.home_score ?? 0}`;
+        const detail = g.status === "final" ? score
+          : g.status === "in_progress" ? `Live ${score}`
+          : g.status === "postponed" ? "Postponed"
+          : shortTip(g);
         return `<th class="game-col"><span class="matchup">${abbr(g.away_team_id)}</span>` +
                `<span class="matchup">@${abbr(g.home_team_id)}</span><small>${detail}</small></th>`;
       };
