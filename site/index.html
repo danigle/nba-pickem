@@ -20,6 +20,7 @@
     <p class="subhead" id="subhead"></p>
     <div id="message"></div>
     <div id="games"></div>
+    <div class="actions" id="actions"></div>
   </main>
 
   <script src="config.js"></script>
@@ -29,7 +30,12 @@
     const msg = document.getElementById("message");
     const list = document.getElementById("games");
     const subhead = document.getElementById("subhead");
-    let teams = {}, games = [], myPicks = {}, week = null;
+    const actions = document.getElementById("actions");
+    let teams = {}, games = [], week = null;
+    let saved = {};        // picks stored in the database: game_id -> team_id
+    let draft = {};        // unsaved taps while editing
+    let editing = false;
+    let savedNote = "";    // confirmation shown after a submit
 
     async function init() {
       if (!requireConfig(msg)) return;
@@ -52,6 +58,8 @@
         subhead.textContent = `Hi, ${me.display_name} · ${weekLabel(week)}`;
         games = await loadSlateGames(week.id);
         await refreshPicks();
+        // Start in edit mode if any open game still needs a pick.
+        editing = openGames().some((g) => !saved[g.id]);
         render();
         setInterval(render, 30000); // flip games to locked as tip-offs pass
       } catch (e) {
@@ -61,18 +69,25 @@
 
     async function refreshPicks() {
       const rows = await rpc("get_my_picks", { p_token: token, p_week_id: week.id });
-      myPicks = Object.fromEntries(rows.map((r) => [r.game_id, r.picked_team_id]));
+      saved = Object.fromEntries(rows.map((r) => [r.game_id, r.picked_team_id]));
     }
+
+    const openGames = () => games.filter((g) => !isLocked(g));
+    const shownPick = (g) => (editing && !isLocked(g) && draft[g.id]) || saved[g.id];
+    const changes = () => openGames().filter((g) => draft[g.id] && draft[g.id] !== saved[g.id]);
 
     function teamButton(game, teamId, score) {
       const t = teams[teamId] || { abbreviation: "?", name: "" };
-      const picked = myPicks[game.id] === teamId;
+      const picked = shownPick(game) === teamId;
+      const unsaved = picked && editing && draft[game.id] === teamId && saved[game.id] !== teamId;
       const winner = winnerId(game);
       const classes = ["team-btn"];
       if (picked) classes.push("picked");
+      if (unsaved) classes.push("unsaved");
       if (picked && winner) classes.push(winner === teamId ? "correct" : "wrong");
+      const disabled = isLocked(game) || !editing;
       return `<button class="${classes.join(" ")}" data-game="${game.id}" data-team="${teamId}"
-                ${isLocked(game) ? "disabled" : ""} aria-pressed="${picked}">
+                ${disabled ? "disabled" : ""} aria-pressed="${picked}">
                 <span class="abbr">${esc(t.abbreviation)}</span>
                 <span class="name">${esc(t.name)}</span>
                 ${game.status === "final" || game.status === "in_progress" ? `<span class="score">${score ?? ""}</span>` : ""}
@@ -83,12 +98,21 @@
       if (!games.length) {
         showNotice(msg, "No games this week (e.g., All-Star break). Enjoy the week off.");
         list.innerHTML = "";
+        actions.innerHTML = "";
         return;
       }
-      const picked = games.filter((g) => myPicks[g.id]).length;
-      const open = games.filter((g) => !isLocked(g) && !myPicks[g.id]).length;
-      showNotice(msg, `<strong>${picked} of ${games.length} picked.</strong> ` +
-        (open ? `${open} open game${open > 1 ? "s still need" : " still needs"} a pick. Picks lock at tip-off.` : "You're all set."));
+      const pending = changes().length;
+      const pickedCount = games.filter((g) => saved[g.id]).length;
+      const needPick = openGames().filter((g) => !saved[g.id] && !draft[g.id]).length;
+
+      if (editing && pending) {
+        showNotice(msg, `<strong>${pending} unsaved pick${pending > 1 ? "s" : ""}.</strong> Tap <strong>Submit picks</strong> to save.`);
+      } else if (savedNote) {
+        showNotice(msg, savedNote);
+      } else {
+        showNotice(msg, `<strong>${pickedCount} of ${games.length} picked.</strong> ` +
+          (needPick ? `${needPick} open game${needPick > 1 ? "s still need" : " still needs"} a pick. Picks lock at tip-off.` : "You're all set."));
+      }
 
       list.innerHTML = games.map((g) => `
         <div class="game">
@@ -99,22 +123,75 @@
             ${teamButton(g, g.home_team_id, g.home_score)}
           </div>
         </div>`).join("");
+
+      if (editing) {
+        const canCancel = Object.keys(saved).length > 0;
+        actions.innerHTML = `
+          <button class="btn primary" id="submit" ${pending ? "" : "disabled"}>Submit picks${pending ? ` (${pending})` : ""}</button>
+          ${canCancel ? `<button class="btn" id="cancel">Cancel</button>` : ""}`;
+      } else {
+        actions.innerHTML = openGames().length ? `<button class="btn" id="edit">Edit picks</button>` : "";
+      }
     }
 
-    list.addEventListener("click", async (e) => {
+    list.addEventListener("click", (e) => {
       const btn = e.target.closest(".team-btn");
       if (!btn || btn.disabled) return;
-      const gameId = Number(btn.dataset.game);
-      const teamId = Number(btn.dataset.team);
-      const previous = myPicks[gameId];
-      myPicks[gameId] = teamId; // optimistic
+      draft[Number(btn.dataset.game)] = Number(btn.dataset.team);
+      savedNote = "";
       render();
+    });
+
+    actions.addEventListener("click", async (e) => {
+      const id = e.target.closest("button")?.id;
+      if (id === "edit") {
+        editing = true;
+        savedNote = "";
+      } else if (id === "cancel") {
+        draft = {};
+        editing = false;
+        savedNote = "";
+      } else if (id === "submit") {
+        await submit();
+        return;
+      }
+      render();
+    });
+
+    async function submit() {
+      const toSave = changes();
+      actions.querySelector("#submit").disabled = true;
+      const failed = [];
+      for (const g of toSave) {
+        try {
+          await rpc("submit_pick", { p_token: token, p_game_id: g.id, p_team_id: draft[g.id] });
+        } catch (err) {
+          const t = teams[draft[g.id]] || {};
+          failed.push(`${esc(t.abbreviation || "?")}: ${esc(err.message)}`);
+        }
+      }
       try {
-        await rpc("submit_pick", { p_token: token, p_game_id: gameId, p_team_id: teamId });
+        await refreshPicks();
       } catch (err) {
-        myPicks[gameId] = previous;
-        render();
-        showNotice(msg, `Pick not saved: ${esc(err.message)}`, true);
+        failed.push(`Couldn't reload picks: ${esc(err.message)}`);
+      }
+      draft = {};
+      editing = false;
+      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const ok = toSave.length - failed.length;
+      savedNote = failed.length
+        ? `<strong>${ok} of ${toSave.length} picks saved.</strong> Not saved: ${failed.join("; ")}`
+        : `<strong>✓ ${ok} pick${ok > 1 ? "s" : ""} saved at ${time}.</strong> ` +
+          `${games.filter((g) => saved[g.id]).length} of ${games.length} picked. Tap <strong>Edit picks</strong> to change any before tip-off.`;
+      render();
+      if (failed.length) msg.firstElementChild.classList.add("error");
+    }
+
+    // Warn before leaving with unsaved picks.
+    window.addEventListener("beforeunload", (e) => {
+      if (editing && changes().length) {
+        e.preventDefault();
+        e.returnValue = "";
       }
     });
 

@@ -118,6 +118,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px; }
 .team-btn:disabled:not(.picked) { background: var(--locked-bg); }
 .team-btn.picked.correct { background: var(--good); border-color: var(--good); }
 .team-btn.picked.wrong { background: var(--bad); border-color: var(--bad); }
+.team-btn.picked.unsaved { border-style: dashed; border-color: var(--text); }
 .team-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .table-wrap { overflow-x: auto; margin-bottom: 24px; }
@@ -149,3 +150,30 @@ select {
   color: var(--text);
   margin-bottom: 12px;
 }
+
+/* Submit / Edit bar, pinned to the bottom of the screen. */
+.actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px 0 16px;
+  background: var(--bg);
+}
+.actions:empty { display: none; }
+
+.btn {
+  flex: 1;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn.primary { flex: 2; background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
