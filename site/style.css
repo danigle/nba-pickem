@@ -45,7 +45,7 @@ header {
   padding: 12px 16px 0;
 }
 
-header h1 { margin: 0 0 8px; font-size: 1.2rem; }
+header h1 { margin-top: 0; margin-bottom: 8px; font-size: 1.2rem; }
 
 /* Line the header up with the centered page content on wide screens. */
 header > * { max-width: 608px; margin-left: auto; margin-right: auto; }
