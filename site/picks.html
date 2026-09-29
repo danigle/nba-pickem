@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#141b2d">
   <title>Weekly Picks · NBA Pick'em</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -71,19 +72,25 @@
 
       const header = `<tr><th>Game</th>${players.map((p) => `<th>${esc(p.display_name)}</th>`).join("")}</tr>`;
       const rows = games.map((g) => {
-        const score = g.status === "final" ? ` ${g.away_score}–${g.home_score}` : "";
+        const detail = g.status === "final" ? `Final ${g.away_score}–${g.home_score}` : shortTip(g);
         const cells = players.map((p) => {
           if (!isLocked(g)) return `<td class="pick hidden" title="Hidden until tip-off">🔒</td>`;
           const pick = byKey[`${p.id}:${g.id}`];
           if (!pick) return `<td class="pick none">—</td>`;
           const cls = pick.is_correct === true ? "correct" : pick.is_correct === false ? "wrong" : "";
-          return `<td class="pick ${cls}">${abbr(pick.picked_team_id)}</td>`;
+          const mark = pick.is_correct === true ? " ✓" : pick.is_correct === false ? " ✗" : "";
+          return `<td class="pick ${cls}">${abbr(pick.picked_team_id)}${mark}</td>`;
         }).join("");
-        return `<tr><td>${abbr(g.away_team_id)} @ ${abbr(g.home_team_id)}${score}<br>
-                  <small class="subhead">${tipoffLabel(g)}</small></td>${cells}</tr>`;
+        return `<tr><td class="game-cell">${abbr(g.away_team_id)} @ ${abbr(g.home_team_id)}<br><small>${detail}</small></td>${cells}</tr>`;
       }).join("");
 
       grid.innerHTML = `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+    }
+
+    // "Sat 7:00 PM": short enough to keep the game column narrow on phones.
+    function shortTip(g) {
+      if (!g.tipoff_utc) return "Time TBD";
+      return new Date(g.tipoff_utc).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
     }
 
     init();

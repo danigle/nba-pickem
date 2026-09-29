@@ -1,43 +1,46 @@
-:root {
-  --bg: #f6f5f8;
-  --card: #ffffff;
-  --text: #1c1a22;
-  --muted: #6b6775;
-  --line: #e3e0e8;
-  --accent: #5a2d81;        /* Kings purple, obviously */
-  --accent-text: #ffffff;
-  --good: #1f7a3d;
-  --good-bg: #e3f4e8;
-  --bad: #b3261e;
-  --bad-bg: #fbe6e4;
-  --locked-bg: #efedf2;
-}
+/* NBA Pick'em — "Arena" theme. Dark only.
+   Fonts: Oswald (headings, team names) + Inter (text), self-hosted in fonts/ (SIL OFL).
+   Contrast: every text/background pair below meets WCAG AA (4.5:1). */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #131118;
-    --card: #1d1a24;
-    --text: #ece9f1;
-    --muted: #9d98a8;
-    --line: #2f2b38;
-    --accent: #9b6fd0;
-    --accent-text: #131118;
-    --good: #6fd08f;
-    --good-bg: #16301f;
-    --bad: #f08a82;
-    --bad-bg: #3a1a18;
-    --locked-bg: #25212d;
-  }
+@font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "Oswald"; font-weight: 500; font-display: swap; src: url("fonts/oswald-500.woff2") format("woff2"); }
+@font-face { font-family: "Oswald"; font-weight: 600; font-display: swap; src: url("fonts/oswald-600.woff2") format("woff2"); }
+
+:root {
+  color-scheme: dark;
+  --bg: #0b1020;
+  --card: #141b2d;
+  --line: #26324b;
+  --text: #e8edf7;
+  --muted: #93a0b8;
+  --accent: #38bdf8;         /* sky blue */
+  --accent-text: #06121f;
+  --good: #22c55e;           /* correct pick fill */
+  --good-text: #04130a;
+  --good-soft: #0f2e1d;      /* weekly table cell */
+  --good-line: #4ade80;
+  --bad: #fb7185;            /* wrong pick fill (dark text: 7.3:1) */
+  --bad-text: #1a0508;
+  --bad-soft: #3a1420;
+  --bad-line: #fda4af;
+  --locked-bg: #1b2438;
+  --display: "Oswald", "Arial Narrow", sans-serif;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  /* Subtle hexagon texture; cards sit on top with solid backgrounds. */
+  background: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2228%22%20height%3D%2248.5%22%20viewBox%3D%220%200%2028%2048.5%22%3E%3Cpath%20d%3D%22M14%200%20L28%208.08%20L28%2024.25%20L14%2032.33%20L0%2024.25%20L0%208.08%20Z%20M14%2032.33%20L14%2048.5%22%20fill%3D%22none%22%20stroke%3D%22rgba%28147%2C160%2C184%2C0.08%29%22%20stroke-width%3D%221%22/%3E%3C/svg%3E') 0 0 / 28px 48.5px, var(--bg);
   color: var(--text);
-  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.4 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+strong { font-weight: 600; }
+a { color: var(--accent); }
 
 header {
   background: var(--card);
@@ -45,7 +48,15 @@ header {
   padding: 12px 16px 0;
 }
 
-header h1 { margin-top: 0; margin-bottom: 8px; font-size: 1.2rem; }
+header h1 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
 
 /* Line the header up with the centered page content on wide screens. */
 header > * { max-width: 608px; margin-left: auto; margin-right: auto; }
@@ -64,6 +75,15 @@ nav a.active { color: var(--text); border-bottom-color: var(--accent); font-weig
 
 main { max-width: 640px; margin: 0 auto; padding: 16px; }
 
+h2 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 16px 0 8px;
+}
+
 .subhead { color: var(--muted); margin: 0 0 16px; }
 
 .notice {
@@ -76,6 +96,8 @@ main { max-width: 640px; margin: 0 auto; padding: 16px; }
 }
 
 .notice.error { border-left-color: var(--bad); }
+
+/* ---------- My Picks ---------- */
 
 .game {
   background: var(--card);
@@ -98,7 +120,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px; }
 
 .team-btn {
   width: 100%;
-  min-height: 56px;
+  min-height: 60px;
   padding: 8px;
   border: 2px solid var(--line);
   border-radius: 10px;
@@ -108,18 +130,31 @@ main { max-width: 640px; margin: 0 auto; padding: 16px; }
   cursor: pointer;
 }
 
-.team-btn .abbr { display: block; font-weight: 700; font-size: 1.1rem; }
-.team-btn .name { display: block; font-size: 0.8rem; color: var(--muted); }
-.team-btn .score { display: block; font-weight: 600; }
+.team-btn .abbr {
+  display: block;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+.team-btn .name { display: block; font-size: 0.78rem; color: var(--muted); }
+.team-btn .score { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .team-btn.picked { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
 .team-btn.picked .name { color: inherit; opacity: 0.85; }
 .team-btn:disabled { cursor: default; }
 .team-btn:disabled:not(.picked) { background: var(--locked-bg); }
-.team-btn.picked.correct { background: var(--good); border-color: var(--good); }
-.team-btn.picked.wrong { background: var(--bad); border-color: var(--bad); }
+.team-btn.picked.correct { background: var(--good); border-color: var(--good); color: var(--good-text); }
+.team-btn.picked.wrong { background: var(--bad); border-color: var(--bad); color: var(--bad-text); }
 .team-btn.picked.saving { opacity: 0.7; }
-.team-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.team-btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+
+.game-foot { margin-top: 8px; font-size: 0.85rem; text-align: center; min-height: 1.2em; }
+.pick-state { color: var(--muted); }
+.pick-state.ok { color: var(--good); font-weight: 600; }
+.pick-state.todo { color: var(--bad); }
+
+/* ---------- Tables ---------- */
 
 .table-wrap { overflow-x: auto; margin-bottom: 24px; }
 
@@ -132,14 +167,23 @@ table {
 }
 
 th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
-th { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+th { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.pick { text-align: center; font-weight: 600; }
-td.pick.correct { background: var(--good-bg); color: var(--good); }
-td.pick.wrong { background: var(--bad-bg); color: var(--bad); }
+td small { color: var(--muted); font-size: 0.75rem; }
+
+/* Weekly Picks cells */
+td.game-cell { font-weight: 600; }
+td.pick { text-align: center; font-weight: 600; padding-left: 6px; padding-right: 6px; }
+td.pick.correct { background: var(--good-soft); color: var(--good-line); }
+td.pick.wrong { background: var(--bad-soft); color: var(--bad-line); }
 td.pick.hidden, td.pick.none { color: var(--muted); font-weight: 400; }
 
-h2 { font-size: 1rem; margin: 8px 0; }
+/* Standings: bar sized to points vs. the leader (--w set per row), leader stripe. */
+tr.standing {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.30) 0, rgba(56, 189, 248, 0.10) var(--w), transparent var(--w));
+}
+tr.standing.leader { box-shadow: inset 4px 0 0 var(--accent); font-weight: 600; }
+td.back { color: var(--muted); font-weight: 400; }
 
 select {
   font: inherit;
@@ -150,8 +194,3 @@ select {
   color: var(--text);
   margin-bottom: 12px;
 }
-
-.game-foot { margin-top: 8px; font-size: 0.85rem; text-align: center; min-height: 1.2em; }
-.pick-state { color: var(--muted); }
-.pick-state.ok { color: var(--good); font-weight: 600; }
-.pick-state.todo { color: var(--bad); }

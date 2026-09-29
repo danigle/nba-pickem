@@ -42,6 +42,15 @@ See README.md for the full setup steps.
 - **Late joiners:** allowed; they start at 0 points.
 - **Budget:** $0 (free tiers only)
 
+## Design (locked Sep 29)
+- **Dark only** ("Arena" theme): navy `#0b1020` background, cards `#141b2d`, sky-blue accent `#38bdf8`. No purple.
+- **Fonts:** Oswald (headings, team abbreviations) + Inter (text), self-hosted in `site/fonts/` (SIL OFL). No font CDN.
+- **Results:** correct = green fill + **✓**, wrong = rose fill + **✗**, dark text on both. Never color alone.
+- **Background:** subtle hexagon pattern (stroke `rgba(147,160,184,0.08)`) behind cards only.
+- **Standings:** points bar sized to the leader, leader stripe + bold, "Back" column (points behind the leader). Season and weekly tables.
+- **Accessibility:** every text/background pair meets WCAG AA (4.5:1). Check new colors before shipping.
+- Title stays "NBA Pick'em" for now.
+
 ## Slate Selection Rules
 1. Pull all eligible regular-season games tipping off Thu–Sun (PT) of the week
 2. Rank teams by win % → "top teams" = top 6 (placeholder, easy to change)
@@ -71,7 +80,7 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 | Database | Supabase Free (Postgres) |
 | NBA data | balldontlie API, free tier (Teams + Games endpoints only) |
 | Scheduled jobs | GitHub Actions cron (Python) |
-| Front end | Static site on GitHub Pages, mobile-first |
+| Front end | Static site on GitHub Pages, mobile-first, dark only |
 
 ## Constraints & Gotchas
 - **balldontlie free tier:** ~5 req/min; API key required in `Authorization` header (no Bearer). Standings endpoint is PAID — compute W-L ourselves from the Games table.
