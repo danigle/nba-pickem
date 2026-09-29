@@ -171,16 +171,14 @@ th { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td small { color: var(--muted); font-size: 0.75rem; }
 
-/* Weekly Picks: players are rows, games are columns. Name + Pts stay pinned while games scroll. */
-.player-col {
-  position: sticky; left: 0; z-index: 1; background: var(--card); font-weight: 600;
-  width: 92px; min-width: 92px; max-width: 92px; overflow: hidden; text-overflow: ellipsis;
-}
-.pts-col { position: sticky; left: 92px; z-index: 1; background: var(--card); font-weight: 600; box-shadow: inset -1px 0 0 var(--line); }
-th.game-col { text-align: center; padding: 6px 4px; line-height: 1.1; min-width: 46px; }
-th.game-col .matchup { display: block; font-family: var(--display); font-weight: 500; font-size: 0.78rem; color: var(--text); letter-spacing: 0.02em; }
-th.game-col small { display: block; margin-top: 2px; font-weight: 400; font-size: 0.66rem; }
-td.pick { text-align: center; font-weight: 600; font-size: 0.85rem; padding-left: 4px; padding-right: 4px; }
+/* Weekly Picks: players are rows, games are columns. Name + Pts stay pinned while games scroll.
+   The name column fits the longest name; picks.html measures it into --name-w so Pts pins right after it. */
+.player-col { position: sticky; left: 0; z-index: 1; background: var(--card); font-weight: 600; font-size: 0.9rem; }
+.pts-col { position: sticky; left: var(--name-w, 0); z-index: 1; background: var(--card); font-weight: 600; font-size: 0.9rem; box-shadow: inset -1px 0 0 var(--line); }
+th.game-col { text-align: center; padding: 6px 3px; line-height: 1.1; min-width: 40px; }
+th.game-col .matchup { display: block; font-family: var(--display); font-weight: 500; font-size: 0.7rem; color: var(--text); letter-spacing: 0.02em; }
+th.game-col small { display: block; margin-top: 2px; font-weight: 400; font-size: 0.6rem; }
+td.pick { text-align: center; font-weight: 600; font-size: 0.78rem; padding-left: 3px; padding-right: 3px; }
 td.pick.correct { background: var(--good-soft); color: var(--good-line); }
 td.pick.wrong { background: var(--bad-soft); color: var(--bad-line); }
 td.pick.hidden, td.pick.none { color: var(--muted); font-weight: 400; }

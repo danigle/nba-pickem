@@ -96,10 +96,19 @@
         return `<td class="pick ${cls}">${abbr(pick.picked_team_id)}${mark}</td>`;
       };
       const rows = ranked.map((p) =>
-        `<tr><td class="player-col" title="${esc(p.display_name)}">${esc(p.display_name)}</td><td class="num pts-col">${p.pts}</td>` +
+        `<tr><td class="player-col">${esc(p.display_name)}</td><td class="num pts-col">${p.pts}</td>` +
         `${games.map((g) => cell(p, g)).join("")}</tr>`).join("");
 
       grid.innerHTML = `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+      pinPoints();
+      document.fonts.ready.then(pinPoints); // fonts can change the name column's width
+    }
+
+    // Pin the Pts column right after the name column, however wide the longest name is.
+    function pinPoints() {
+      const table = grid.querySelector("table");
+      const nameCol = table?.querySelector(".player-col");
+      if (nameCol) table.style.setProperty("--name-w", `${nameCol.offsetWidth}px`);
     }
 
     // "Sat 7:00p": short enough to keep game columns narrow on phones.
