@@ -61,3 +61,16 @@ def test_historical_teams_skipped():
     assert bdl.normalize_team({"id": 26, "conference": "West", "abbreviation": "SAC",
                                "city": "Sacramento", "name": "Kings",
                                "full_name": "Sacramento Kings"})["abbreviation"] == "SAC"
+
+
+def test_play_in_after_season_end_is_postseason():
+    end = date(2026, 4, 12)
+    assert bdl.normalize_game(game(date="2026-04-14"), season_end=end)["game_type"] == "postseason"
+    assert bdl.normalize_game(game(date="2026-04-12"), season_end=end)["game_type"] == "regular"
+
+
+def test_league_config_parses():
+    import config
+    league = config.load_league()
+    assert config.season_end(league, 2025) == date(2026, 4, 12)
+    assert 20377171 in league["cup_final_game_ids"]

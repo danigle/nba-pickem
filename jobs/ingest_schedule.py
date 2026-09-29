@@ -22,13 +22,14 @@ def main():
 
     api, db = BallDontLie(), Supabase()
     opener = config.season_opener(league, args.season)
+    end = config.season_end(league, args.season)
     cup_final_ids = set(league.get("cup_final_game_ids", []))
 
     print(f"Fetching season {args.season}")
     team_ids = {t["id"] for t in db.select("teams", [("select", "id")])}
     if not team_ids:
         raise SystemExit("No teams loaded. Run: python jobs/ingest_teams.py")
-    rows = [normalize_game(g, opener, cup_final_ids) for g in api.games(args.season)]
+    rows = [normalize_game(g, opener, cup_final_ids, end) for g in api.games(args.season)]
 
     # Skip games involving non-NBA teams (e.g. preseason exhibitions).
     skipped = [r for r in rows if not {r["home_team_id"], r["away_team_id"]} <= team_ids]
@@ -41,6 +42,10 @@ def main():
     by_type = Counter(r["game_type"] for r in rows)
     missing_tipoff = sum(1 for r in rows if r["tipoff_utc"] is None and r["status"] == "scheduled")
     print(f"Upserted {len(rows)} games | status {dict(by_status)} | type {dict(by_type)}")
+    regular_dates = sorted(r["game_date"] for r in rows if r["game_type"] == "regular")
+    if regular_dates:
+        print(f"Regular season dates: {regular_dates[0]} to {regular_dates[-1]}"
+              + ("" if end else " (season_ends not set in league.toml)"))
     if missing_tipoff:
         print(f"WARNING: {missing_tipoff} scheduled games have no tip-off time (can't be picked)")
 

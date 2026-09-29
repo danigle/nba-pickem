@@ -117,7 +117,7 @@ def parse_status(g):
     return "in_progress"
 
 
-def normalize_game(g, season_opener=None, cup_final_ids=()):
+def normalize_game(g, season_opener=None, cup_final_ids=(), season_end=None):
     """Row for the games table."""
     status = parse_status(g)
     tipoff = parse_tipoff(g)
@@ -125,8 +125,8 @@ def normalize_game(g, season_opener=None, cup_final_ids=()):
 
     if g["id"] in cup_final_ids:
         game_type = "cup_final"
-    elif g.get("postseason"):
-        game_type = "postseason"
+    elif g.get("postseason") or (season_end and game_date > season_end.isoformat()):
+        game_type = "postseason"  # includes Play-In
     elif season_opener and game_date < season_opener.isoformat():
         game_type = "preseason"
     else:

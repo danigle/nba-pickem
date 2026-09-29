@@ -12,16 +12,18 @@ Priority: **ease of use** over features. Friends-first; build clean enough to gr
 Preseason (starts Oct 3) is NOT a hard target. Testing uses fake seeded games (a script creates test games with tip-offs a few hours out; a wipe script removes them before launch). Preseason games never count toward the league.
 
 ## Setup Status
-Code is built with placeholders (see README.md for the full setup steps).
+See README.md for the full setup steps.
 - [x] GitHub repo is public (required for free GitHub Pages)
-- [x] Schema, pick functions, jobs, slate generator, site, workflows — built; SQL + security tested on local Postgres 16, slate logic unit-tested, pages tested against a mocked API
-- [ ] Supabase project; run `supabase/migrations/001`–`004` — Daniel, week of Sep 28
-- [ ] balldontlie API key — Daniel, week of Sep 28
-- [ ] `site/config.js`: real Supabase URL + publishable (or legacy anon) key
-- [ ] Actions secrets: `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
+- [x] Schema, pick functions, jobs, slate generator, site, workflows built and tested
+- [x] Supabase project; migrations 001–004 run; anon access verified (Sep 28)
+- [x] balldontlie key; Actions secrets `BALLDONTLIE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
+- [x] `site/config.js`: real Supabase URL + publishable key
+- [x] `load-data` run (Sep 29): 30 teams; 2025–26 = 1,322 games; 2026–27 = 1,200 scheduled (the last 30 are scheduled in December after the Cup group stage)
+- [x] Live balldontlie data verified: every 2026–27 game has a tip-off time; statuses parse; historical teams filtered; no preseason games on the free tier; Play-In and Cup Final are NOT flagged as postseason, so they're handled via `season_ends` / `cup_final_game_ids` in `jobs/league.toml`
 - [ ] Pages source = GitHub Actions; repo variable `PICKEM_ENABLED=true` (jobs + deploy skip until set)
-- [ ] Actions → Admin → `load-data`; add players via Supabase SQL editor (never print tokens in public Action logs)
-- [ ] Verify against live balldontlie data: tip-off field, status strings, historical teams, preseason/Cup Final flags
+- [ ] Add players via Supabase SQL editor (never print tokens in public Action logs)
+- [ ] Fake test week with friends
+- [ ] `league.toml`: add 2026 `season_ends` (from the load-data log) and the 2026–27 Cup Final id in December
 
 ## Locked Decisions
 - **Games:** regular season only. No preseason, Play-In, playoffs, or NBA Cup Final (the Cup Final doesn't count toward NBA standings either).

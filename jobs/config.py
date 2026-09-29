@@ -18,3 +18,8 @@ def load_prefs():
 def season_opener(league, season):
     """First regular-season game date for a season, or None if not configured."""
     return league.get("openers", {}).get(str(season))
+
+
+def season_end(league, season):
+    """Last regular-season game date for a season, or None if not configured."""
+    return league.get("season_ends", {}).get(str(season))
