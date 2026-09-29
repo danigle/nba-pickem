@@ -34,7 +34,7 @@ See README.md for the full setup steps.
 - **Scoring:** 1 point per correct pick
 - **Lock:** each pick locks at that game's tip-off
 - **Pick edits:** players may change a pick any time until that game's tip-off
-- **Pick flow:** tap teams (unsaved picks show dashed) → **Submit picks** saves them → confirmation with time → **Edit picks** reopens. Unsaved picks trigger a leave-page warning; a game that tips off mid-edit is reported as not saved.
+- **Pick flow:** each tap saves instantly (no Submit button). Every game card says "✓ Pick saved", "Saving…" or "No pick yet"; the banner confirms each save with team + time, and a failed save is shown in red with the previous pick kept.
 - **Pick visibility:** other players' picks are hidden until that game locks
 - **Postponed/cancelled games:** voided — no point, no penalty
 - **Reminders:** manual (group text) for V1

@@ -20,7 +20,6 @@
     <p class="subhead" id="subhead"></p>
     <div id="message"></div>
     <div id="games"></div>
-    <div class="actions" id="actions"></div>
   </main>
 
   <script src="config.js"></script>
@@ -30,12 +29,10 @@
     const msg = document.getElementById("message");
     const list = document.getElementById("games");
     const subhead = document.getElementById("subhead");
-    const actions = document.getElementById("actions");
     let teams = {}, games = [], week = null;
-    let saved = {};        // picks stored in the database: game_id -> team_id
-    let draft = {};        // unsaved taps while editing
-    let editing = false;
-    let savedNote = "";    // confirmation shown after a submit
+    let saved = {};    // picks stored in the database: game_id -> team_id
+    let saving = {};   // taps waiting on the database: game_id -> team_id
+    let queue = {};    // per-game save chain, so quick re-taps save in order
 
     async function init() {
       if (!requireConfig(msg)) return;
@@ -58,8 +55,7 @@
         subhead.textContent = `Hi, ${me.display_name} · ${weekLabel(week)}`;
         games = await loadSlateGames(week.id);
         await refreshPicks();
-        // Start in edit mode if any open game still needs a pick.
-        editing = openGames().some((g) => !saved[g.id]);
+        showSummary();
         render();
         setInterval(render, 30000); // flip games to locked as tip-offs pass
       } catch (e) {
@@ -72,48 +68,47 @@
       saved = Object.fromEntries(rows.map((r) => [r.game_id, r.picked_team_id]));
     }
 
-    const openGames = () => games.filter((g) => !isLocked(g));
-    const shownPick = (g) => (editing && !isLocked(g) && draft[g.id]) || saved[g.id];
-    const changes = () => openGames().filter((g) => draft[g.id] && draft[g.id] !== saved[g.id]);
+    const pickedCount = () => games.filter((g) => saved[g.id]).length;
+
+    function showSummary() {
+      if (!games.length) {
+        showNotice(msg, "No games this week (e.g., All-Star break). Enjoy the week off.");
+        return;
+      }
+      const needPick = games.filter((g) => !isLocked(g) && !saved[g.id]).length;
+      showNotice(msg, `<strong>${pickedCount()} of ${games.length} picked.</strong> ` +
+        (needPick ? `${needPick} open game${needPick > 1 ? "s still need" : " still needs"} a pick. ` : "You're all set. ") +
+        "Each tap saves instantly; change any pick until tip-off.");
+    }
 
     function teamButton(game, teamId, score) {
       const t = teams[teamId] || { abbreviation: "?", name: "" };
-      const picked = shownPick(game) === teamId;
-      const unsaved = picked && editing && draft[game.id] === teamId && saved[game.id] !== teamId;
+      const picked = (saving[game.id] ?? saved[game.id]) === teamId;
       const winner = winnerId(game);
       const classes = ["team-btn"];
       if (picked) classes.push("picked");
-      if (unsaved) classes.push("unsaved");
+      if (picked && saving[game.id]) classes.push("saving");
       if (picked && winner) classes.push(winner === teamId ? "correct" : "wrong");
-      const disabled = isLocked(game) || !editing;
       return `<button class="${classes.join(" ")}" data-game="${game.id}" data-team="${teamId}"
-                ${disabled ? "disabled" : ""} aria-pressed="${picked}">
+                ${isLocked(game) ? "disabled" : ""} aria-pressed="${picked}">
                 <span class="abbr">${esc(t.abbreviation)}</span>
                 <span class="name">${esc(t.name)}</span>
                 ${game.status === "final" || game.status === "in_progress" ? `<span class="score">${score ?? ""}</span>` : ""}
               </button>`;
     }
 
+    function pickState(game) {
+      if (saving[game.id]) return `<span class="pick-state">Saving…</span>`;
+      if (saved[game.id]) return `<span class="pick-state ok">✓ Pick saved</span>`;
+      if (!isLocked(game)) return `<span class="pick-state todo">No pick yet</span>`;
+      return "";
+    }
+
     function render() {
       if (!games.length) {
-        showNotice(msg, "No games this week (e.g., All-Star break). Enjoy the week off.");
         list.innerHTML = "";
-        actions.innerHTML = "";
         return;
       }
-      const pending = changes().length;
-      const pickedCount = games.filter((g) => saved[g.id]).length;
-      const needPick = openGames().filter((g) => !saved[g.id] && !draft[g.id]).length;
-
-      if (editing && pending) {
-        showNotice(msg, `<strong>${pending} unsaved pick${pending > 1 ? "s" : ""}.</strong> Tap <strong>Submit picks</strong> to save.`);
-      } else if (savedNote) {
-        showNotice(msg, savedNote);
-      } else {
-        showNotice(msg, `<strong>${pickedCount} of ${games.length} picked.</strong> ` +
-          (needPick ? `${needPick} open game${needPick > 1 ? "s still need" : " still needs"} a pick. Picks lock at tip-off.` : "You're all set."));
-      }
-
       list.innerHTML = games.map((g) => `
         <div class="game">
           <div class="game-meta"><span>${tipoffLabel(g)}</span><span>${statusLabel(g)}</span></div>
@@ -122,74 +117,40 @@
             <span class="at">@</span>
             ${teamButton(g, g.home_team_id, g.home_score)}
           </div>
+          <div class="game-foot">${pickState(g)}</div>
         </div>`).join("");
-
-      if (editing) {
-        const canCancel = Object.keys(saved).length > 0;
-        actions.innerHTML = `
-          <button class="btn primary" id="submit" ${pending ? "" : "disabled"}>Submit picks${pending ? ` (${pending})` : ""}</button>
-          ${canCancel ? `<button class="btn" id="cancel">Cancel</button>` : ""}`;
-      } else {
-        actions.innerHTML = openGames().length ? `<button class="btn" id="edit">Edit picks</button>` : "";
-      }
     }
 
-    list.addEventListener("click", (e) => {
+    list.addEventListener("click", async (e) => {
       const btn = e.target.closest(".team-btn");
       if (!btn || btn.disabled) return;
-      draft[Number(btn.dataset.game)] = Number(btn.dataset.team);
-      savedNote = "";
+      const gameId = Number(btn.dataset.game);
+      const teamId = Number(btn.dataset.team);
+      if (saved[gameId] === teamId && !saving[gameId]) return;
+      saving[gameId] = teamId;
       render();
-    });
-
-    actions.addEventListener("click", async (e) => {
-      const id = e.target.closest("button")?.id;
-      if (id === "edit") {
-        editing = true;
-        savedNote = "";
-      } else if (id === "cancel") {
-        draft = {};
-        editing = false;
-        savedNote = "";
-      } else if (id === "submit") {
-        await submit();
-        return;
-      }
-      render();
-    });
-
-    async function submit() {
-      const toSave = changes();
-      actions.querySelector("#submit").disabled = true;
-      const failed = [];
-      for (const g of toSave) {
-        try {
-          await rpc("submit_pick", { p_token: token, p_game_id: g.id, p_team_id: draft[g.id] });
-        } catch (err) {
-          const t = teams[draft[g.id]] || {};
-          failed.push(`${esc(t.abbreviation || "?")}: ${esc(err.message)}`);
-        }
-      }
+      const abbr = esc((teams[teamId] || {}).abbreviation || "?");
       try {
-        await refreshPicks();
+        const save = (queue[gameId] || Promise.resolve()).catch(() => {})
+          .then(() => rpc("submit_pick", { p_token: token, p_game_id: gameId, p_team_id: teamId }));
+        queue[gameId] = save;
+        await save;
+        if (saving[gameId] !== teamId) return; // a newer tap on this game is queued
+        saved[gameId] = teamId;
+        delete saving[gameId];
+        const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        showNotice(msg, `<strong>✓ ${abbr} saved at ${time}.</strong> ${pickedCount()} of ${games.length} picked. ` +
+          "Change any pick until tip-off.");
       } catch (err) {
-        failed.push(`Couldn't reload picks: ${esc(err.message)}`);
+        if (saving[gameId] === teamId) delete saving[gameId];
+        showNotice(msg, `<strong>${abbr} NOT saved:</strong> ${esc(err.message)}. Your previous pick still stands.`, true);
       }
-      draft = {};
-      editing = false;
-      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      const ok = toSave.length - failed.length;
-      savedNote = failed.length
-        ? `<strong>${ok} of ${toSave.length} picks saved.</strong> Not saved: ${failed.join("; ")}`
-        : `<strong>✓ ${ok} pick${ok > 1 ? "s" : ""} saved at ${time}.</strong> ` +
-          `${games.filter((g) => saved[g.id]).length} of ${games.length} picked. Tap <strong>Edit picks</strong> to change any before tip-off.`;
       render();
-      if (failed.length) msg.firstElementChild.classList.add("error");
-    }
+    });
 
-    // Warn before leaving with unsaved picks.
+    // Warn before leaving while a pick is still being saved.
     window.addEventListener("beforeunload", (e) => {
-      if (editing && changes().length) {
+      if (Object.keys(saving).length) {
         e.preventDefault();
         e.returnValue = "";
       }
