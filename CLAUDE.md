@@ -48,6 +48,7 @@ See README.md for the full setup steps.
 - **Results:** correct = green fill + **✓**, wrong = rose fill + **✗**, dark text on both. Never color alone.
 - **Background:** subtle hexagon pattern (stroke `rgba(147,160,184,0.08)`) behind cards only.
 - **Standings:** points bar sized to the leader, leader stripe + bold, "Back" column (points behind the leader). Season and weekly tables.
+- **Weekly Picks:** players are rows (league can grow to 10–12+), games are columns (≤7). Player name + weekly Pts are pinned; games scroll sideways on phones. Rows sorted by the week's points, then name. Game headers are compact (small matchup + score/time).
 - **Accessibility:** every text/background pair meets WCAG AA (4.5:1). Check new colors before shipping.
 - Title stays "NBA Pick'em" for now.
 
