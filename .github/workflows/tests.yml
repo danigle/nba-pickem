@@ -14,3 +14,31 @@ jobs:
           python-version: "3.12"
       - run: pip install -r jobs/requirements.txt -r jobs/requirements-dev.txt
       - run: pytest -q
+
+  database:
+    # Runs the migrations on a clean Postgres 16, then the security tests:
+    # pick locks, hidden picks, token privacy, scoring.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v5
+      - name: Migrations + security tests
+        run: |
+          psql -v ON_ERROR_STOP=1 -q \
+            -f supabase/tests/00_supabase_roles.sql \
+            -f supabase/migrations/001_tables.sql \
+            -f supabase/migrations/002_views.sql \
+            -f supabase/migrations/003_functions.sql \
+            -f supabase/migrations/004_security.sql \
+            -f supabase/tests/security_test.sql

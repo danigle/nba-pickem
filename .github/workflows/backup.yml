@@ -1,0 +1,58 @@
+name: Weekly backup
+
+# Exports players, weeks, slates and locked picks (no tokens) to the
+# `backups` branch. Each week is a commit, so git history holds every version.
+
+on:
+  schedule:
+    - cron: "41 10 * * 2"   # Tuesdays 10:41 UTC = 3:41am PDT / 2:41am PST
+  workflow_dispatch:
+
+permissions:
+  contents: write  # push to the backups branch
+  issues: write    # failure alert
+
+concurrency: backup
+
+jobs:
+  backup:
+    if: vars.PICKEM_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r jobs/requirements.txt
+      - name: Export
+        run: python jobs/backup.py --out "$RUNNER_TEMP/backup"
+      - name: Commit to the backups branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin backups >/dev/null; then
+            git fetch --depth 1 origin backups
+            git worktree add "$RUNNER_TEMP/bk" FETCH_HEAD
+            cd "$RUNNER_TEMP/bk" && git switch -C backups
+          else
+            git worktree add --detach "$RUNNER_TEMP/bk"
+            cd "$RUNNER_TEMP/bk" && git switch --orphan backups
+          fi
+          cp "$RUNNER_TEMP"/backup/* .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes since the last backup."
+          else
+            git commit -q -m "Backup $(date -u +%Y-%m-%d)"
+            git push origin backups
+          fi
+      - name: Alert the commissioner if this failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: ${{ github.workflow }}
+        run: .github/scripts/report-failure.sh

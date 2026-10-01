@@ -96,6 +96,8 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 - **GitHub Actions cron:** runs in UTC and starts late; on-the-hour schedules ran 4–8 hours late in practice (Sep 2026), so schedules use odd minutes. Scheduled workflows are disabled after 60 days without repo activity; the daily job re-enables them via the API (runs OK; whether it resets the clock is unproven, so check Actions runs periodically).
 - **Failure alerts:** GitHub's own failure emails go to whoever last edited the cron line (here that's the "Claude" git identity, so likely nobody). Scheduled jobs instead open an issue @mentioning danigle via `.github/scripts/report-failure.sh`.
 - **Live scores:** `live_scores.py` runs every 30 min Thu–Mon UTC, refreshes only dates with games in their live window, and makes no API calls otherwise. Its own concurrency group, so it never bumps the daily/Monday jobs.
+- **Backups:** weekly to the public `backups` branch via `jobs/backup.py`: no tokens, only picks for games that have tipped off, no test data. Restore steps are in the README.
+- **Database tests:** `supabase/tests/security_test.sql` runs in CI after the migrations. Any change to migrations must keep it passing; add a case for any new rule.
 - **GitHub Pages (free)** requires a public repo — only the Supabase anon key may appear in front-end code.
 
 ## Data Model (see `supabase/migrations/`)
