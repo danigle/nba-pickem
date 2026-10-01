@@ -186,3 +186,19 @@ def _fill_with_repeats(slate, pool, prefs, rng, size, notes):
         notes.append(f"Relaxed no-repeat: {', '.join(repeated)} appear twice")
         slate.append(game)
     return slate
+
+
+# ---------- Sanity checks (the Monday job fails loudly instead of saving junk) ----------
+
+def check_inputs(records_count, records_season, pool_size, games_in_week, chosen_count):
+    """Return (errors, warnings) for a slate run. Any error should fail the job."""
+    errors, warnings = [], []
+    if records_count == 0:
+        errors.append(f"No team records for season {records_season}; was its data loaded?")
+    if pool_size == 0 and games_in_week == 0:
+        errors.append("No regular-season games at all this week; the schedule data looks missing")
+    elif pool_size == 0:
+        warnings.append("No Thu–Sun games this week (All-Star break?); saving an empty week")
+    if pool_size > 0 and chosen_count == 0:
+        errors.append(f"Pool had {pool_size} games but none were chosen; check slate_prefs.toml")
+    return errors, warnings

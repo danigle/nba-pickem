@@ -6,7 +6,7 @@
     python jobs/generate_slate.py --force      # replace an existing slate
 """
 import argparse
-from datetime import date, datetime
+from datetime import date, datetime, time, timezone
 
 import config
 import slate
@@ -14,7 +14,7 @@ from db import Supabase
 
 
 def iso_z(dt):
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def main():
@@ -75,6 +75,19 @@ def main():
     seed = f"{season}-{week_num}"
     chosen, notes = slate.pick_slate(pool, ranking, prefs, seed)
 
+    week_start = datetime.combine(monday, time(0), slate.PT).astimezone(timezone.utc)  # Mon 00:00 PT
+    games_in_week = db.select("games", [
+        ("select", "id"), ("season", f"eq.{season}"), ("game_type", "eq.regular"),
+        ("is_test", "eq.false"),
+        ("tipoff_utc", f"gte.{iso_z(week_start)}"), ("tipoff_utc", f"lt.{iso_z(end_utc)}"),
+    ])
+    errors, warnings = slate.check_inputs(len(records), records_season, len(pool),
+                                          len(games_in_week), len(chosen))
+    for w in warnings:
+        print(f"WARNING: {w}")
+    if errors:
+        raise SystemExit("Slate NOT saved:\n  " + "\n  ".join(errors))
+
     print(f"Week {week_num} ({monday} – {sunday}) | seed {seed} | records from {records_season}")
     print(f"Top teams: {sorted(slate.top_teams(ranking, prefs))} | pool: {len(pool)} games")
     for g in chosen:
@@ -110,6 +123,9 @@ def main():
     db.delete("slate_games", [("week_id", f"eq.{week['id']}")])
     if chosen:
         db.insert("slate_games", [{"week_id": week["id"], "game_id": g.id} for g in chosen])
+    saved = db.select("slate_games", [("select", "game_id"), ("week_id", f"eq.{week['id']}")])
+    if len(saved) != len(chosen):
+        raise SystemExit(f"Saved {len(saved)} slate games but chose {len(chosen)}; check the database")
     print(f"Saved week {week_num} slate: {len(chosen)} games")
 
 

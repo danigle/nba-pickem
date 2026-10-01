@@ -5,7 +5,8 @@ name: Weekly slate
 
 on:
   schedule:
-    - cron: "0 14 * * 1"   # Mondays 14:00 UTC = 7am PDT / 6am PST
+    # Mondays 13:37 UTC = 6:37am PDT / 5:37am PST (off the top of the hour, which GitHub delays).
+    - cron: "37 13 * * 1"
   workflow_dispatch:
     inputs:
       week:
@@ -18,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  issues: write    # failure alert
 
 concurrency: pickem-jobs
 
@@ -46,3 +48,9 @@ jobs:
           [ -n "$WEEK" ] && args+=(--week "$WEEK")
           [ "$FORCE" = "true" ] && args+=(--force)
           python jobs/generate_slate.py "${args[@]}"
+      - name: Alert the commissioner if this failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: ${{ github.workflow }}
+        run: .github/scripts/report-failure.sh

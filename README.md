@@ -49,11 +49,17 @@ python jobs/fake_week.py finish                               # final scores for
 python jobs/fake_week.py wipe                                 # delete all test data before launch
 ```
 
-## Weekly (automatic)
+## Automatic jobs
 
-- **Daily 10:00 UTC:** refreshes scores and the schedule.
-- **Monday 14:00 UTC:** refreshes, then generates the Thu–Sun slate.
-- Preview a slate without saving it: `python jobs/generate_slate.py --dry-run --week 1`
+| Job | When | What |
+|---|---|---|
+| **Daily scores** | Daily ~2:23 AM PT | Full season refresh: scores, statuses, reschedules. Keeps Supabase awake. |
+| **Live scores** | Every 30 min, Thu–Sun nights | Same-night results for games in progress. Exits without API calls when nothing is on. |
+| **Weekly slate** | Mondays ~6:37 AM PT | Refresh, then generate the Thu–Sun slate. Fails loudly on missing data. |
+
+- **Failures** open a GitHub issue that @mentions the commissioner (one issue per job; repeat failures add comments). Close it once fixed.
+- **Timing:** GitHub can start scheduled jobs late, sometimes by hours; schedules avoid the top of the hour, which is the worst.
+- Preview a slate without saving: Actions → Admin → `slate-preview`, or `python jobs/generate_slate.py --dry-run --week 1`
 
 ## Tests
 

@@ -42,11 +42,15 @@ class BallDontLie:
     def teams(self):
         return self._get("/teams")["data"]
 
-    def games(self, season):
-        """All games for a season (follows cursor pagination)."""
+    def games(self, season=None, dates=None):
+        """All games for a season, or for specific dates (follows cursor pagination)."""
         games, cursor = [], None
         while True:
-            params = {"seasons[]": season, "per_page": 100}
+            params = {"per_page": 100}
+            if season is not None:
+                params["seasons[]"] = season
+            if dates:
+                params["dates[]"] = list(dates)
             if cursor:
                 params["cursor"] = cursor
             page = self._get("/games", params)
