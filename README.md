@@ -61,7 +61,31 @@ python jobs/fake_week.py wipe                                 # delete all test 
 - **Timing:** GitHub can start scheduled jobs late, sometimes by hours; schedules avoid the top of the hour, which is the worst.
 - Preview a slate without saving: Actions → Admin → `slate-preview`, or `python jobs/generate_slate.py --dry-run --week 1`
 
+## Backups
+
+**Weekly backup** (Tuesdays ~3:41 AM PT, or Actions → Weekly backup → Run workflow) commits
+`players.json`, `weeks.json`, `slate_games.json` and `picks.json` to the **`backups`** branch.
+Each week is a commit, so git history holds every version. Backups are public-safe: **no access
+tokens**, and only picks for games that had already tipped off.
+
+### Restoring from a backup
+1. Set up a fresh Supabase project and run migrations `001`–`004` (Setup steps 1–3).
+2. Run Admin → `load-data` so the teams and games exist (picks reference them).
+3. Restore (locally, with the three env vars set):
+   ```
+   git fetch origin backups && git worktree add /tmp/bk origin/backups
+   python jobs/restore.py --dir /tmp/bk
+   ```
+   It loads players → weeks → slate_games → picks, keeping ids, then prints two `setval` lines to
+   run in the SQL editor so the id counters catch up.
+4. Players get **new tokens**: `python jobs/make_player.py --list` and send everyone their new link.
+
 ## Tests
+
+- `pytest`: slate rules, API parsing, live-score gating, backup filtering.
+- **Database security tests** (`supabase/tests/security_test.sql`) run in CI on a clean Postgres 16:
+  pick locks (including a game that tipped off before its status updated), hidden picks, token
+  privacy and scoring.
 
 ```
 pip install -r jobs/requirements-dev.txt
