@@ -93,7 +93,9 @@ Daniel can add his own rules and favoritism. Preferences live in a versioned con
 - Secrets (API key, Supabase service key) live in GitHub Actions secrets, never in the repo.
 - Verify balldontlie's game object includes a usable tip-off datetime before building lock logic.
 - Verify how balldontlie flags preseason and NBA Cup Final games so they can be excluded (and whether preseason games are returned at all on the free tier — affects the test plan).
-- **GitHub Actions cron:** runs in UTC, can start late, and scheduled workflows are disabled after 60 days without repo activity.
+- **GitHub Actions cron:** runs in UTC and starts late; on-the-hour schedules ran 4–8 hours late in practice (Sep 2026), so schedules use odd minutes. Scheduled workflows are disabled after 60 days without repo activity; the daily job re-enables them via the API (runs OK; whether it resets the clock is unproven, so check Actions runs periodically).
+- **Failure alerts:** GitHub's own failure emails go to whoever last edited the cron line (here that's the "Claude" git identity, so likely nobody). Scheduled jobs instead open an issue @mentioning danigle via `.github/scripts/report-failure.sh`.
+- **Live scores:** `live_scores.py` runs every 30 min Thu–Mon UTC, refreshes only dates with games in their live window, and makes no API calls otherwise. Its own concurrency group, so it never bumps the daily/Monday jobs.
 - **GitHub Pages (free)** requires a public repo — only the Supabase anon key may appear in front-end code.
 
 ## Data Model (see `supabase/migrations/`)

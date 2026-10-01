@@ -167,3 +167,24 @@ def test_lakers_never_repeat():
     ranking = top_six_then_rest(["LAL", "OKC", "SAS", "POR", "UTA", "WAS"])
     games, _ = slate.pick_slate(make_pool(pairs), ranking, PREFS, "2026-9")
     assert teams_in(games)["LAL"] == 1
+
+
+# ---------- Sanity checks ----------
+
+def test_check_inputs_normal_week():
+    assert slate.check_inputs(30, 2025, 29, 50, 7) == ([], [])
+
+
+def test_check_inputs_all_star_week_is_a_warning():
+    errors, warnings = slate.check_inputs(30, 2026, 0, 12, 0)
+    assert errors == [] and "All-Star" in warnings[0]
+
+
+def test_check_inputs_missing_data_fails():
+    errors, _ = slate.check_inputs(0, 2025, 0, 0, 0)
+    assert len(errors) == 2  # no records + no games at all
+
+
+def test_check_inputs_pool_but_nothing_chosen_fails():
+    errors, _ = slate.check_inputs(30, 2026, 5, 20, 0)
+    assert "none were chosen" in errors[0]

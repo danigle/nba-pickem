@@ -6,12 +6,15 @@ name: Daily scores
 
 on:
   schedule:
-    - cron: "0 10 * * *"   # 10:00 UTC = 3am PDT / 2am PST, after West Coast games end
+    # 09:23 UTC = 2:23am PDT / 1:23am PST, after West Coast games end.
+    # Off the top of the hour: GitHub delays on-the-hour schedules by hours.
+    - cron: "23 9 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: write   # lets the keep-alive step re-enable scheduled workflows
+  issues: write    # failure alert
 
 concurrency: pickem-jobs
 
@@ -39,3 +42,10 @@ jobs:
         run: |
           gh workflow enable daily_scores.yml --repo "$GITHUB_REPOSITORY"
           gh workflow enable weekly_slate.yml --repo "$GITHUB_REPOSITORY"
+          gh workflow enable live_scores.yml --repo "$GITHUB_REPOSITORY"
+      - name: Alert the commissioner if this failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: ${{ github.workflow }}
+        run: .github/scripts/report-failure.sh
