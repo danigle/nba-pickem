@@ -14,14 +14,13 @@ on:
 permissions:
   contents: read
   actions: write   # lets the keep-alive step re-enable scheduled workflows
-  issues: write    # failure alert
 
 concurrency: pickem-jobs
 
 jobs:
   scores:
     if: vars.PICKEM_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
@@ -43,9 +42,4 @@ jobs:
           gh workflow enable daily_scores.yml --repo "$GITHUB_REPOSITORY"
           gh workflow enable weekly_slate.yml --repo "$GITHUB_REPOSITORY"
           gh workflow enable live_scores.yml --repo "$GITHUB_REPOSITORY"
-      - name: Alert the commissioner if this failed
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          WORKFLOW: ${{ github.workflow }}
-        run: .github/scripts/report-failure.sh
+          gh workflow enable backup.yml --repo "$GITHUB_REPOSITORY"

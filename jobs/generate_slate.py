@@ -38,6 +38,14 @@ def main():
     monday, sunday = slate.week_dates(week1, week_num)
 
     db = Supabase()
+
+    # Safe to run more than once (the workflow retries in case GitHub can't start
+    # a job): once a week has a slate, later runs leave it alone and succeed.
+    existing = db.select("weeks", [("season", f"eq.{season}"), ("week_num", f"eq.{week_num}")])
+    if existing and existing[0]["slate_generated_at"] and not args.force and not args.dry_run:
+        print(f"Week {week_num} already has a slate (generated {existing[0]['slate_generated_at']}). "
+              "Nothing to do. Use --force to replace it.")
+        return
     teams = {t["id"]: t["abbreviation"] for t in db.select("teams", [("select", "id,abbreviation")])}
     unknown = prefs.team_names() - set(teams.values())
     if unknown:
@@ -98,10 +106,6 @@ def main():
     if args.dry_run:
         print("Dry run: nothing written.")
         return
-
-    existing = db.select("weeks", [("season", f"eq.{season}"), ("week_num", f"eq.{week_num}")])
-    if existing and existing[0]["slate_generated_at"] and not args.force:
-        raise SystemExit(f"Week {week_num} already has a slate. Use --force to replace it.")
 
     week = db.upsert("weeks", [{
         "season": season,
