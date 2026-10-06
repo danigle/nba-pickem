@@ -6,7 +6,7 @@ on:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -18,7 +18,7 @@ jobs:
   database:
     # Runs the migrations on a clean Postgres 16, then the security tests:
     # pick locks, hidden picks, token privacy, scoring.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16

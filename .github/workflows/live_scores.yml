@@ -11,7 +11,6 @@ on:
 
 permissions:
   contents: read
-  issues: write    # failure alert
 
 # Own group: must never queue behind (or bump) the daily or Monday jobs.
 concurrency: live-scores
@@ -19,7 +18,7 @@ concurrency: live-scores
 jobs:
   live:
     if: vars.PICKEM_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
@@ -32,9 +31,3 @@ jobs:
           python-version: "3.12"
       - run: pip install -r jobs/requirements.txt
       - run: python jobs/live_scores.py
-      - name: Alert the commissioner if this failed
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          WORKFLOW: ${{ github.workflow }}
-        run: .github/scripts/report-failure.sh

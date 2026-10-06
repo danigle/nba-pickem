@@ -10,14 +10,13 @@ on:
 
 permissions:
   contents: write  # push to the backups branch
-  issues: write    # failure alert
 
 concurrency: backup
 
 jobs:
   backup:
     if: vars.PICKEM_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -50,9 +49,3 @@ jobs:
             git commit -q -m "Backup $(date -u +%Y-%m-%d)"
             git push origin backups
           fi
-      - name: Alert the commissioner if this failed
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          WORKFLOW: ${{ github.workflow }}
-        run: .github/scripts/report-failure.sh

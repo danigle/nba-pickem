@@ -4,7 +4,7 @@
 # that keeps failing adds comments instead of new issues.
 set -euo pipefail
 title="⚠️ ${WORKFLOW} failed"
-run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+run_url="${RUN_URL:-${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}}"
 existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"${WORKFLOW} failed\"" \
   --json number,title --jq "map(select(.title == \"$title\")) | .[0].number // empty")
 if [ -n "$existing" ]; then

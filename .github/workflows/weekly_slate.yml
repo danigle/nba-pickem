@@ -6,7 +6,11 @@ name: Weekly slate
 on:
   schedule:
     # Mondays 13:37 UTC = 6:37am PDT / 5:37am PST (off the top of the hour, which GitHub delays).
+    # Retries Monday afternoon and Tuesday morning in case GitHub can't start the job;
+    # once the week has a slate, later runs do nothing.
     - cron: "37 13 * * 1"
+    - cron: "37 19 * * 1"
+    - cron: "37 13 * * 2"
   workflow_dispatch:
     inputs:
       week:
@@ -19,14 +23,13 @@ on:
 
 permissions:
   contents: read
-  issues: write    # failure alert
 
 concurrency: pickem-jobs
 
 jobs:
   slate:
     if: vars.PICKEM_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
@@ -48,9 +51,3 @@ jobs:
           [ -n "$WEEK" ] && args+=(--week "$WEEK")
           [ "$FORCE" = "true" ] && args+=(--force)
           python jobs/generate_slate.py "${args[@]}"
-      - name: Alert the commissioner if this failed
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          WORKFLOW: ${{ github.workflow }}
-        run: .github/scripts/report-failure.sh
