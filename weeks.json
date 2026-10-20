@@ -1,1 +1,72 @@
-[]
+[
+ {
+  "end_date": "2026-10-25",
+  "id": 2,
+  "is_test": false,
+  "season": 2026,
+  "slate_generated_at": "2026-10-19T19:29:33.00851+00:00",
+  "slate_inputs": {
+   "notes": [],
+   "pool_size": 29,
+   "prefs": {
+    "never_repeat": [
+     "LAL"
+    ],
+    "repeat_priority": [
+     "SAC"
+    ],
+    "top_team_max_rank": {
+     "LAL": 3
+    },
+    "top_teams": 6,
+    "weights": {
+     "LAL": 0.0,
+     "SAC": 2.0
+    }
+   },
+   "ranking": [
+    "OKC",
+    "SAS",
+    "DET",
+    "BOS",
+    "DEN",
+    "LAL",
+    "NYK",
+    "CLE",
+    "HOU",
+    "MIN",
+    "ATL",
+    "TOR",
+    "ORL",
+    "PHI",
+    "PHX",
+    "CHA",
+    "MIA",
+    "LAC",
+    "POR",
+    "GSW",
+    "MIL",
+    "CHI",
+    "DAL",
+    "NOP",
+    "MEM",
+    "SAC",
+    "UTA",
+    "BKN",
+    "IND",
+    "WAS"
+   ],
+   "records_season": 2025,
+   "seed": "2026-1",
+   "top_teams": [
+    "BOS",
+    "DEN",
+    "DET",
+    "OKC",
+    "SAS"
+   ]
+  },
+  "start_date": "2026-10-19",
+  "week_num": 1
+ }
+]
